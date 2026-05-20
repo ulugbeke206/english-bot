@@ -1,5 +1,4 @@
 import os
-import random
 from flask import Flask
 import telebot
 from telebot import types
@@ -10,57 +9,71 @@ app = Flask(__name__)
 def home():
     return "Bot is running live!"
 
+# Amaldagi bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
-# 1. KO'P VA XILMA-XIL SO'ZLAR BAZASI (Har safar 5 tadan har xil chiqadi)
-WORDS_DATABASE = [
-    "📚 **Yangi so'zlar (Vocabulary - Set 1):**\n\n1. **Analyze** - Tahlil qilmoq\n2. **Beneficial** - Foydali\n3. **Challenge** - Qiyinchilik\n4. **Develop** - Rivojlantirmoq\n5. **Essential** - Juda muhim",
-    "📚 **Yangi so'zlar (Vocabulary - Set 2):**\n\n1. **Achieve** - Erishmoq\n2. **Improve** - Yaxshilamoq\n3. **Success** - Muvaffaqiyat\n4. **Experience** - Tajriba\n5. **Support** - Qo'llab-quvvatlamoq",
-    "📚 **Yangi so'zlar (Vocabulary - Set 3):**\n\n1. **Accurate** - Aniq, xatosiz\n2. **Blame** - Ayblamoq\n3. **Consequences** - Oqibatlar\n4. **Delay** - Kechiktirmoq\n5. **Encourage** - Ruhlantirmoq",
-    "📚 **Yangi so'zlar (Vocabulary - Set 4):**\n\n1. **Frequent** - Tez-tez bo'lib turadigan\n2. **Generous** - Saxiy, qo'li ochiq\n3. **Hesitate** - Ikklanmoq\n4. **Influence** - Ta'sir ko'rsatmoq\n5. **Maintain** - Bir xil holatda saqlamoq",
-    "📚 **Yangi so'zlar (Vocabulary - Set 5):**\n\n1. **Predict** - Bashorat qilmoq\n2. **Reject** - Rad etmoq\n3. **Valuable** - Qadrli, qimmatli\n4. **Vast** - Ulkan, juda keng\n5. **Wealth** - Boylik, farovonlik"
-]
-
-# 2. CHUQQURLASHTIRILGAN GRAMMATIKA MATNLARI BAZASI
-GRAMMAR_DATABASE = [
-    "📝 **Grammatika (Present Simple Tense):**\n\nFormula: `Subject + V1 (s/es)`\n\n📌 We use it for daily habits and general truths.\n• _Example:_ He plays football every Sunday. (U har yakshanba futbol o'ynaydi).",
-    "📝 **Grammatika (Present Perfect Tense):**\n\nFormula: `Subject + have/has + V3`\n\n📌 We use it for recent actions with a result now.\n• _Example:_ I have lost my keys. (Kalitlarimni yo'qotib qo'ydim, hozir ham yo'q).",
-    "📝 **Grammatika (Past Simple Tense):**\n\nFormula: `Subject + V2 / V-ed`\n\n📌 We use it for finished actions in the past.\n• _Example:_ They went to London last year. (Ular o'tgan yili Londonga ketishdi).",
-    "📝 **Grammatika (Future Simple Tense):**\n\nFormula: `Subject + will + V1`\n\n📌 We use it for future promises or instant decisions.\n• _Example:_ I will call you tomorrow. (Sizga ertaga telefon qilaman).",
-    "📝 **Grammatika (Modal Verbs - Can / Could):**\n\n📌 'Can' is for present ability, 'Could' is for past ability.\n• _Example:_ She can speak three languages. (U uchta tilda gapira oladi)."
-]
-
-# 3. OSON VA TUGMALI (POLL) TESTLAR BAZASI
-TESTS_DATABASE = [
+# 📚 TARTIBLI DARSLAR RO'YXATI
+LESSONS_DATABASE = [
     {
-        "question": "🧠 [Test] She ___ to school every day. (Oson)",
-        "options": ["go", "goes", "going", "gone"],
+        "lesson_num": 1,
+        "word": "📚 **1-DARS: Yangi so'zlar (Vocabulary):**\n\n1. **Analyze** - Tahlil qilmoq\n2. **Beneficial** - Foydali\n3. **Challenge** - Qiyinchilik\n4. **Develop** - Rivojlantirmoq\n5. **Essential** - Juda muhim",
+        "grammar": "📝 **1-DARS: Grammatika (Present Simple Tense):**\n\nFormula: `Subject + V1 (s/es)`\n\n📌 Doimiy odatlar va umumiy haqiqatlar uchun.\n• _Example:_ He plays football every Sunday. (U har yakshanba futbol o'ynaydi).",
+        "test_question": "🧠 [1-Dars Testi] She ___ to school every day.",
+        "test_options": ["go", "goes", "going", "gone"],
         "correct_index": 1
     },
     {
-        "question": "🧠 [Test] What is the past tense of the verb 'BUY'?",
-        "options": ["Buyed", "Bought", "Brought", "Buying"],
+        "lesson_num": 2,
+        "word": "📚 **2-DARS: Yangi so'zlar (Vocabulary):**\n\n1. **Achieve** - Erishmoq\n2. **Improve** - Yaxshilamoq\n3. **Success** - Muvaffaqiyat\n4. **Experience** - Tajriba\n5. **Support** - Qo'llab-quvvatlamoq",
+        "grammar": "📝 **2-DARS: Grammatika (Present Perfect Tense):**\n\nFormula: `Subject + have/has + V3`\n\n📌 Yaqinda tugagan va natijasi hozir ko'rinib turgan ishlar uchun.\n• _Example:_ I have lost my keys. (Kalitlarimni yo'qotib qo'ydim).",
+        "test_question": "🧠 [2-Dars Testi] What is the past tense of the verb 'BUY'?",
+        "test_options": ["Buyed", "Bought", "Brought", "Buying"],
         "correct_index": 1
     },
     {
-        "question": "🧠 [Test] 'Encourage' so'zining to'g'ri tarjimasini toping:",
-        "options": ["Ruhlantirmoq", "Kechikmoq", "Taqiqmoq", "Ayblash"],
+        "lesson_num": 3,
+        "word": "📚 **3-DARS: Yangi so'zlar (Vocabulary):**\n\n1. **Accurate** - Aniq, xatosiz\n2. **Blame** - Ayblamoq\n3. **Consequences** - Oqibatlar\n4. **Delay** - Kechiktirmoq\n5. **Encourage** - Ruhlantirmoq",
+        "grammar": "📝 **3-DARS: Grammatika (Past Simple Tense):**\n\nFormula: `Subject + V2 / V-ed`\n\n📌 O'tmishda tugagan aniq harakatlar uchun.\n• _Example:_ They went to London last year. (Ular o'tgan yili Londonga ketishdi).",
+        "test_question": "🧠 [3-Dars Testi] 'Encourage' so'zining to'g'ri tarjimasini toping:",
+        "test_options": ["Ruhlantirmoq", "Kechikmoq", "Taqiqmoq", "Ayblash"],
         "correct_index": 0
     },
     {
-        "question": "🧠 [Test] Which word means 'Saxiy / Qo'li ochiq'?",
-        "options": ["Greedy", "Generous", "Frequent", "Hesitate"],
+        "lesson_num": 4,
+        "word": "📚 **4-DARS: Yangi so'zlar (Vocabulary):**\n\n1. **Frequent** - Tez-tez bo'ladigan\n2. **Generous** - Saxiy, qo'li ochiq\n3. **Hesitate** - Ikklanmoq\n4. **Influence** - Ta'sir ko'rsatmoq\n5. **Maintain** - Saqlamoq (holatni)",
+        "grammar": "📝 **4-DARS: Grammatika (Future Simple Tense):**\n\nFormula: `Subject + will + V1`\n\n📌 Kelajakdagi va'dalar yoki qarorlar uchun.\n• _Example:_ I will call you tomorrow. (Sizga ertaga telefon qilaman).",
+        "test_question": "🧠 [4-Dars Testi] Which word means 'Saxiy / Qo'li ochiq'?",
+        "test_options": ["Greedy", "Generous", "Frequent", "Hesitate"],
         "correct_index": 1
     },
     {
-        "question": "🧠 [Test] Look! The birds ___ in the sky right now.",
-        "options": ["flies", "are flying", "flew", "fly"],
+        "lesson_num": 5,
+        "word": "📚 **5-DARS: Yangi so'zlar (Vocabulary):**\n\n1. **Predict** - Bashorat qilmoq\n2. **Reject** - Rad etmoq\n3. **Valuable** - Qadrli, qimmatli\n4. **Vast** - Ulkan, keng\n5. **Wealth** - Boylik, farovonlik",
+        "grammar": "📝 **5-DARS: Grammatika (Present Continuous Tense):**\n\nFormula: `Subject + am/is/are + V-ing`\n\n📌 Ayni damda sodir bo'layotgan jarayonlar uchun.\n• _Example:_ I am studying English right now. (Men hozir ingliz tilini o'rganyapman).",
+        "test_question": "🧠 [5-Dars Testi] Look! The birds ___ in the sky right now.",
+        "test_options": ["flies", "are flying", "flew", "fly"],
         "correct_index": 1
     }
 ]
 
-# Siz aytgandek toza va aniq 3 ta tugmali menyu
+# FOYDALANUVCHINING JORIY DARSI VA TARIXINI SAQLASH
+user_lessons = {}
+
+def get_current_lesson(user_id):
+    # Agar foydalanuvchi yangi bo'lsa, uni 1-darsga biriktiramiz (indeks: 0)
+    if user_id not in user_lessons:
+        user_lessons[user_id] = 0
+    
+    current_index = user_lessons[user_id]
+    
+    # Agar barcha darslar tugagan bo'lsa, qaytadan 1-darsga qaytaramiz (aylanma tizim)
+    if current_index >= len(LESSONS_DATABASE):
+        user_lessons[user_id] = 0
+        current_index = 0
+        
+    return LESSONS_DATABASE[current_index]
+
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn_word = types.KeyboardButton("📖 Yangi so'z")
@@ -72,36 +85,48 @@ def get_main_menu():
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    user_id = message.from_user.id
+    user_lessons[user_id] = 0 # 1-darsdan boshlash
+    
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Ingliz tili botiga xush kelibsiz.\n"
-        "Pastdagi menyudan o'zingizga kerakli bo'limni tanlang. "
-        "Har safar bosganingizda mutlaqo yangi ma'lumotlar beriladi! 👇"
+        "Bot mutlaqo yangilandi! Endi tizim tartibli darslik formatida ishlaydi.\n"
+        "Siz joriy darsning so'zlari va grammatikasini o'rganib, **Test ishlash** tugmasini "
+        "bossangizgina, tizim sizni keyingi darsga o'tkazadi. Eskilari umuman qaytarilmaydi! 👇"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
 
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
+    user_id = message.from_user.id
+    current_lesson = get_current_lesson(user_id)
+    
     if message.text == "📖 Yangi so'z":
-        # Ro'yxatdan ixtiyoriy bitta yangi to'plamni tanlaydi (hech qachon doim bir xil bo'lmaydi)
-        random_word = random.choice(WORDS_DATABASE)
-        bot.send_message(message.chat.id, random_word, parse_mode="Markdown")
+        bot.send_message(message.chat.id, current_lesson["word"], parse_mode="Markdown")
         
     elif message.text == "📝 Grammatika":
-        # Ixtiyoriy grammatik qoidani yuboradi
-        random_grammar = random.choice(GRAMMAR_DATABASE)
-        bot.send_message(message.chat.id, random_grammar, parse_mode="Markdown")
+        bot.send_message(message.chat.id, current_lesson["grammar"], parse_mode="Markdown")
         
     elif message.text == "🧠 Test ishlash":
-        # Ixtiyoriy oson tugmali testni (Poll) yuboradi
-        test = random.choice(TESTS_DATABASE)
+        # Viktorina (Poll) yuboramiz
         bot.send_poll(
             chat_id=message.chat.id,
-            question=test["question"],
-            options=test["options"],
+            question=current_lesson["test_question"],
+            options=current_lesson["test_options"],
             type="quiz",
-            correct_option_id=test["correct_index"],
+            correct_option_id=current_lesson["correct_index"],
             is_anonymous=False
+        )
+        
+        # 🔥 TESTGA JAVOB BERILGANI UCHUN FOYDALANUVCHINI KEYINGI DARSGA O'TKAZAMIZ
+        user_lessons[user_id] += 1
+        
+        # Keyingi dars yuklanganini bildirish uchun kichik xabar
+        next_lesson = get_current_lesson(user_id)
+        bot.send_message(
+            message.chat.id, 
+            f"✅ Test yuborildi! Siz muvaffaqiyatli keyingi darsga o'tdingiz. "
+            f"Endi menyu tugmalarini bossangiz, yangi dars ma'lumotlari chiqadi."
         )
 
 if __name__ == "__main__":
