@@ -1,43 +1,77 @@
-import os
-import random
-from flask import Flask
 import telebot
+import random
 from telebot import types
+import os
+from threading import Thread
+from flask import Flask
 
-# Flask veb-server yaratamiz (Render port xatosi bermasligi uchun)
-app = Flask(__name__)
+# Render port xatosini to'g'rilash uchun kichik Web-Server yaratamiz
+app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is running live!"
+    return "Bot muvaffaqiyatli ishlamoqda!"
 
-# ⚠️ DIQQAT: O'zingizning haqiqiy tokeningizni shu yerga qo'ying!
-TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
+def run():
+    # Render avtomatik taqdim etadigan portni oladi, bo'lmasa 8080 da ishlaydi
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# Botni sozlash
+TOKEN = '8957612617:AAFomuLCeWizMIywQX_8UjK6IG0FopUsaQY'
 bot = telebot.TeleBot(TOKEN)
 
-# Testlar bazasi
-TESTS = [
+# Ma'lumotlar bazasi (Darslar va testlar)
+LESSONS = {
+    "vocabulary": (
+        "📚 **Bugungi yangi so'zlar:**\n\n"
+        "1. **Analyze** - Tahlil qilmoq\n"
+        "2. **Beneficial** - Foydali\n"
+        "3. **Challenge** - Qiyinchilik/Chaqiriq\n"
+        "4. **Develop** - Rivojlantirmoq\n"
+        "5. **Essential** - Juda muhim\n\n"
+        "💡 *Ushbu so'zlarni yodlang va gaplar tuzishga harakat qiling!*"
+    ),
+    "grammar": (
+        "✍️ **Present Perfect Tense (Yaqinda tugagan zamon):**\n\n"
+        "Formula: `Subject + have/has + V3 (past participle)`\n\n"
+        "📌 **Misollar:**\n"
+        "• I **have lost** my keys. (Kalitlarimni yo'qotib qo'ydim).\n"
+        "• She **has already finished** her homework. (U vazifasini bajarib bo'ldi).\n\n"
+        "⚠️ *Eslatma: 'Has' faqat He, She, It uchun ishlatiladi.*"
+    )
+}
+
+QUIZ_DATA = [
     {
-        "question": "Choose the correct form:\nShe ___ to school every day.",
-        "options": ["go", "goes", "going", "gone"],
-        "correct": "goes"
+        "question": "1. 'Essential' so'zining to'g'ri tarjimasi nima?",
+        "options": ["Foydali", "Juda muhim", "Rivojlanish", "Tahlil qilmoq"],
+        "correct": "Juda muhim"
     },
     {
-        "question": "What is the past tense of 'BUY'?",
-        "options": ["bought", "buyed", "brought", "buying"],
-        "correct": "bought"
+        "question": "2. Choose the correct form: 'He ___ just arrived.'",
+        "options": ["have", "has", "is", "was"],
+        "correct": "has"
+    },
+    {
+        "question": "3. 'Analyze' so'zining o'zbekcha ma'nosini toping:",
+        "options": ["Gapirmoq", "Tahlil qilmoq", "Tushunmoq", "Yozmoq"],
+        "correct": "Tahlil qilmoq"
     }
 ]
 
-# Bosh menyu tugmalari
-def get_main_keyboard():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn_lexica = types.KeyboardButton("📖 Leksika (New Words)")
-    btn_grammar = types.KeyboardButton("📝 Grammatika")
-    btn_test = types.KeyboardButton("🧠 Testni boshlash")
-    keyboard.add(btn_lexica, btn_grammar)
-    keyboard.add(btn_test)
-    return keyboard
+# Asosiy menyu tugmalari
+def main_keyboard():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    btn1 = types.KeyboardButton("📖 Leksika (New Words)")
+    btn2 = types.KeyboardButton("📝 Grammatika")
+    btn3 = types.KeyboardButton("🧠 Testni boshlash")
+    markup.add(btn1, btn2, btn3)
+    return markup
 
 # /start buyrug'i
 @bot.message_handler(commands=['start'])
@@ -47,45 +81,48 @@ def send_welcome(message):
         "Ingliz tilini o'rganish botiga xush kelibsiz.\n"
         "Quyidagi tugmalardan birini tanlang va darsni boshlang 👇"
     )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
+    bot.send_message(message.chat.id, welcome_text, reply_markup=main_keyboard())
 
-# Matnli xabarlarni va tugmalarni tutish
+# Oddiy xabarlarni tutish
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
     if message.text == "📖 Leksika (New Words)":
-        lexica_text = (
-            "📚 **Bugungi yangi so'zlar:**\n\n"
-            "1. **Achieve** - Erishmoq (yutuqqa)\n"
-            "2. **Challenge** - Qiyinchilik, chaqiriq\n"
-            "3. **Improve** - Rivojlantirmoq, yaxshilamoq\n"
-            "4. **Success** - Muvaffaqiyat\n"
-            "5. **Experience** - Tajriba"
-        )
-        bot.send_message(message.chat.id, lexica_text, parse_mode="Markdown")
+        bot.send_message(message.chat.id, LESSONS["vocabulary"], parse_mode="Markdown")
         
     elif message.text == "📝 Grammatika":
-        grammar_text = (
-            "✍️ **Present Perfect Tense (Yaqinda tugagan zamon):**\n\n"
-            "Formula: Subject + have/has + V3 (past participle)\n\n"
-            "📌 **Misollar:**\n"
-            "• I have lost my keys. (Kalitlarimni yo'qotib qo'ydim).\n"
-            "• She has already finished her homework. (U vazifasini bajarib bo'ldi).\n\n"
-            "⚠️ Eslatma: 'Has' faqat He, She, It uchun ishlatiladi."
-        )
-        bot.send_message(message.chat.id, grammar_text)
+        bot.send_message(message.chat.id, LESSONS["grammar"], parse_mode="Markdown")
         
     elif message.text == "🧠 Testni boshlash":
-        # Eski sodda mantiq: Bot shunchaki bitta test tashlaydi
-        test = random.choice(TESTS)
-        options_text = "\n".join([f"- {opt}" for opt in test["options"]])
-        test_text = f"🧠 **Savol:**\n{test['question']}\n\n**Variantlar:**\n{options_text}\n\n*To'g'ri javobni o'zingiz tekshiring: {test['correct']}*"
-        bot.send_message(message.chat.id, test_text, parse_mode="Markdown")
+        quiz = random.choice(QUIZ_DATA)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        
+        for option in quiz["options"]:
+            is_correct = "yes" if option == quiz["correct"] else "no"
+            btn = types.InlineKeyboardButton(option, callback_data=f"quiz_{is_correct}_{quiz['correct']}")
+            markup.add(btn)
+            
+        bot.send_message(message.chat.id, quiz["question"], reply_markup=markup)
+        
+    else:
+        bot.send_message(message.chat.id, "Iltimos, menyudagi tugmalardan birini bosing.", reply_markup=main_keyboard())
 
-# Serverni va botni yurgizish (O'sha ishga tushgan sodda qism)
-if __name__ == "__main__":
-    import threading
-    port = int(os.environ.get("PORT", 10000))
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)).start()
+# Inline tugmalar uchun tekshirgich
+@bot.callback_query_handler(func=lambda call: call.data.startswith('quiz_'))
+def check_quiz_answer(call):
+    data_parts = call.data.split('_')
+    status = data_parts[1]
+    correct_answer = data_parts[2]
     
-    print("Bot is starting polling...")
+    if status == "yes":
+        bot.answer_callback_query(call.id, "To'g'ri! Barakalla! 🎉", show_alert=True)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                              text=f"{call.message.text}\n\n✅ **Siz to'g'ri javob berdingiz!**", parse_mode="Markdown")
+    else:
+        bot.answer_callback_query(call.id, f"Noto'g'ri! ❌ To'g'ri javob: {correct_answer}", show_alert=True)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                              text=f"{call.message.text}\n\n❌ **Xato javob berdingiz.**\nTo'g'ri javob: *{correct_answer}*", parse_mode="Markdown")
+
+# Botni uzluksiz va veb-server bilan birga ishlatish
+if __name__ == '__main__':
+    keep_alive()  # Kichik veb-serverni parallel ravishda ishga tushiradi
     bot.infinity_polling()
