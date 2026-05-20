@@ -11,8 +11,8 @@ app = Flask(__name__)
 def home():
     return "Bot is running live!"
 
-# ⚠️ DIQQAT: O'zingizning haqiqiy tokeningizni shu yerga qo'ying!
-TOKEN = 'bu_yerga_botfather_bergan_uzun_kod_qo_yiladi'
+# 👇 DIQQAT: O'sha nusxalab olgan tokeningizni aynan mana shu qo'shtirnoq ichiga joylashtiring!
+TOKEN = '8957612617:AAfomulCeWizMIywQX_8UjK6IG0FopUsaQY'
 bot = telebot.TeleBot(TOKEN)
 
 # Testlar bazasi
