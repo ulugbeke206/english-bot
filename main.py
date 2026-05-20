@@ -11,11 +11,11 @@ app = Flask(__name__)
 def home():
     return "Bot is running live!"
 
-# Telegram Bot Token (Sizning shaxsiy tokeningiz)
-TOKEN = '8957612617:AAfomulCeWizMIywQX_8UjK6IG0FopUsaQY'
+# ⚠️ DIQQAT: Quyidagi qo'shtirnoq ichiga BotFather bergan o'zingizning haqiqiy tokeningizni qo'ying!
+TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
 bot = telebot.TeleBot(TOKEN)
 
-# Testlar bazasi (Siz xohlagancha test qo'shishingiz mumkin)
+# Testlar bazasi
 TESTS = [
     {
         "question": "Choose the correct form:\nShe ___ to school every day.",
@@ -96,7 +96,7 @@ def handle_menu(message):
             "Formula: Subject + have/has + V3 (past participle)\n\n"
             "📌 **Misollar:**\n"
             "• I have lost my keys. (Kalitlarimni yo'qotib qo'ydim).\n"
-            "• She has already finished her homework. (U vazifasini bajarib bo'ldi).\n\n"
+            "• She has already finished her homework. (U vazifasini bajaib bo'ldi).\n\n"
             "⚠️ Eslatma: 'Has' faqat He, She, It uchun ishlatiladi."
         )
         bot.send_message(message.chat.id, grammar_text)
@@ -112,7 +112,7 @@ def handle_test_answer(call):
     user_answer = call.data
     correct_answer = user_correct_answers.get(chat_id)
 
-    # Eski inline tugmalarni o'chirib tashlaymiz (foydalanuvchi qayta bosa olmasligi uchun)
+    # Eski tugmalarni o'chiramiz
     bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=None)
 
     if correct_answer:
@@ -121,16 +121,15 @@ def handle_test_answer(call):
         else:
             bot.send_message(chat_id, f"❌ Xato! To'g'ri javob: **{correct_answer}** edi. 😔", parse_mode="Markdown")
         
-        # SIZ AYTGAN ASOSIY JOYI: Javob bergandan keyin srazu keyingi testni yuboramiz!
+        # Javob berilgandan keyin darhol keyingi testni yuborish mantiqi:
         send_random_test(chat_id)
     else:
         bot.send_message(chat_id, "Bu test muddati o'tgan. Iltimos, menyudan yangi test boshlang.")
 
 # Serverni yuritish qismi
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    # Render'da orqada bot ishlab turishi uchun Flask'ni alohida torda emas, botni pooling rejimida yurgizamiz
     import threading
+    port = int(os.environ.get("PORT", 10000))
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)).start()
     
     print("Bot is starting polling...")
