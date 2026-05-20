@@ -1,0 +1,53 @@
+TOKEN = 'import telebot
+import random
+from telebot import types
+
+# BotFather bergan YANGI tokeningizni shu yerga qo'ying
+TOKEN = '8957612617:AAFo...UsaQY' 
+bot = telebot.TeleBot(TOKEN)
+
+words_db = [
+    {"word": "Apple", "translation": "Olma", "example": "I eat an apple every day."},
+    {"word": "Book", "translation": "Kitob", "example": "This is an interesting book."},
+    {"word": "Challenge", "translation": "Qiyinchilik / Sprev", "example": "Learning English is a great challenge."},
+    {"word": "Success", "translation": "Muvaffaqiyat", "example": "Hard work brings success."},
+    {"word": "Improve", "translation": "Rivojlantirmoq", "example": "You need to improve your speaking skills."}
+]
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("🧠 Yangi so'zlar")
+    btn2 = types.KeyboardButton("📝 Mini-Test")
+    markup.add(btn1, btn2)
+    
+    bot.send_message(
+        message.chat.id, 
+        f"Salom {message.from_user.first_name}! Xush kelibsiz.\n"
+        f"Men sizga har kuni yangi inglizcha so'zlarni o'rganishda yordam beraman.", 
+        reply_markup=markup
+    )
+
+@bot.message_handler(func=lambda message: message.text == "🧠 Yangi so'zlar")
+def send_words(message):
+    selected_words = random.sample(words_db, 3)
+    response = "📚 **Bugungi so'zlar:**\n\n"
+    for item in selected_words:
+        response += f"🇬🇧 **{item['word']}** — 🇺🇿 {item['translation']}\n"
+        response += f"💡 *Misol:* {item['example']}\n\n"
+    bot.send_message(message.chat.id, response, parse_mode="Markdown")
+
+@bot.message_handler(func=lambda message: message.text == "📝 Mini-Test")
+def send_quiz(message):
+    question = " 'Improve' so'zining tarjimasi nima?"
+    options = ["Muvaffaqiyat", "Rivojlantirmoq", "Kitob", "Qiyinchilik"]
+    bot.send_poll(
+        chat_id=message.chat.id,
+        question=question,
+        options=options,
+        type='quiz',
+        correct_option_id=1,
+        is_anonymous=False
+    )
+
+bot.polling(none_stop=True)'
