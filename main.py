@@ -4,10 +4,14 @@ from flask import Flask
 import telebot
 from telebot import types
 
-# Flask veb-server yaratamiz
+# Flask veb-server yaratamiz (Render port xatosi bermasligi uchun)
 app = Flask(__name__)
 
-# Telegram Bot Token (O'zingiznikini qo'ying)
+@app.route('/')
+def home():
+    return "Bot is running live!"
+
+# ⚠️ DIQQAT: O'zingizning haqiqiy tokeningizni shu yerga qo'ying!
 TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
 bot = telebot.TeleBot(TOKEN)
 
@@ -22,21 +26,10 @@ TESTS = [
         "question": "What is the past tense of 'BUY'?",
         "options": ["bought", "buyed", "brought", "buying"],
         "correct": "bought"
-    },
-    {
-        "question": "Complete the sentence:\nI have ___ my homework.",
-        "options": ["do", "did", "done", "doing"],
-        "correct": "done"
-    },
-    {
-        "question": "Which one is a synonym for 'BEAUTIFUL'?",
-        "options": ["ugly", "pretty", "sad", "angry"],
-        "correct": "pretty"
     }
 ]
 
-user_correct_answers = {}
-
+# Bosh menyu tugmalari
 def get_main_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn_lexica = types.KeyboardButton("📖 Leksika (New Words)")
@@ -46,16 +39,7 @@ def get_main_keyboard():
     keyboard.add(btn_test)
     return keyboard
 
-def send_random_test(chat_id):
-    test = random.choice(TESTS)
-    user_correct_answers[chat_id] = test["correct"]
-    
-    keyboard = types.InlineKeyboardMarkup()
-    for option in test["options"]:
-        keyboard.add(types.InlineKeyboardButton(text=option, callback_data=option))
-        
-    bot.send_message(chat_id, test["question"], reply_markup=keyboard)
-
+# /start buyrug'i
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     welcome_text = (
@@ -65,6 +49,7 @@ def send_welcome(message):
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
 
+# Matnli xabarlarni va tugmalarni tutish
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
     if message.text == "📖 Leksika (New Words)":
@@ -90,40 +75,17 @@ def handle_menu(message):
         bot.send_message(message.chat.id, grammar_text)
         
     elif message.text == "🧠 Testni boshlash":
-        bot.send_message(message.chat.id, "🚀 Test rejimi faollashdi! Savollarga javob bering:")
-        send_random_test(message.chat.id)
+        # Eski sodda mantiq: Bot shunchaki bitta test tashlaydi
+        test = random.choice(TESTS)
+        options_text = "\n".join([f"- {opt}" for opt in test["options"]])
+        test_text = f"🧠 **Savol:**\n{test['question']}\n\n**Variantlar:**\n{options_text}\n\n*To'g'ri javobni o'zingiz tekshiring: {test['correct']}*"
+        bot.send_message(message.chat.id, test_text, parse_mode="Markdown")
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_test_answer(call):
-    chat_id = call.message.chat.id
-    user_answer = call.data
-    correct_answer = user_correct_answers.get(chat_id)
-
-    try:
-        bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=None)
-    except:
-        pass
-
-    if correct_answer:
-        if user_answer == correct_answer:
-            bot.send_message(chat_id, "✅ To'g'ri topdingiz! Baranvallo! 🎉")
-        else:
-            bot.send_message(chat_id, f"❌ Xato! To'g'ri javob: **{correct_answer}** edi. 😔", parse_mode="Markdown")
-        
-        send_random_test(chat_id)
-    else:
-        bot.send_message(chat_id, "Bu test muddati o'tgan. Iltimos, menyudan yangi test boshlang.")
-
-# Render birinchi bo'lib tekshiradigan asosiy sahifa
-@app.route('/')
-def home():
-    return "Bot muvaffaqiyatli ishlayapti!"
-
-# Bot orqa fonda xabarlarni doimiy eshitib turishi uchun funksiya
-def run_bot():
-    bot.remove_webhook()
-    bot.infinity_polling(none_stop=True)
-
-# Loyiha ishga tushganda bot alohida oqimda srazu yoqiladi
-import threading
-threading.Thread(target=run_bot, daemon=True).start()
+# Serverni va botni yurgizish (O'sha ishga tushgan sodda qism)
+if __name__ == "__main__":
+    import threading
+    port = int(os.environ.get("PORT", 10000))
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)).start()
+    
+    print("Bot is starting polling...")
+    bot.infinity_polling()
