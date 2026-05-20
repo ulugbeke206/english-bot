@@ -4,16 +4,22 @@ from flask import Flask
 import telebot
 from telebot import types
 
-# Flask veb-server yaratamiz (Render port xatosi bermasligi uchun)
+# ⚠️ DIQQAT: Quyidagi qo'shtirnoq ichiga BotFather bergan o'zingizning haqiqiy tokeningizni qo'ying!
+TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
+bot = telebot.TeleBot(TOKEN)
+
+# Flask veb-server yaratamiz (Render port xatosi bermasligi va Failed bo'lmasligi uchun)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running live!"
-
-# ⚠️ DIQQAT: Quyidagi qo'shtirnoq ichiga BotFather bergan o'zingizning haqiqiy tokeningizni qo'ying!
-TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
-bot = telebot.TeleBot(TOKEN)
+    # Bu funksiya orqali bot har soniyada Telegram'dan yangi xabarlarni tekshiradi
+    if bot.get_webhook_info().url == "":
+        bot.remove_webhook()
+        # Render'da "Failed" bo'lmasligi uchun xabarlarni shu yerda ushlab turamiz
+        import threading
+        threading.Thread(target=bot.polling, kwargs={"none_stop": True}).start()
+    return "Bot muvaffaqiyatli ishlayapti!"
 
 # Testlar bazasi
 TESTS = [
@@ -39,7 +45,6 @@ TESTS = [
     }
 ]
 
-# Har bir foydalanuvchining joriy javobini saqlab turish uchun lug'at
 user_correct_answers = {}
 
 # Bosh menyu tugmalari
@@ -124,14 +129,7 @@ def handle_test_answer(call):
     else:
         bot.send_message(chat_id, "Bu test muddati o'tgan. Iltimos, menyudan yangi test boshlang.")
 
-# Render uchun asosiy ishga tushirish qismi
+# Loyihani ishga tushirish
 if __name__ == "__main__":
-    import threading
-    # Telegram botni alohida oqimda (thread) yurgizamiz
-    bot_thread = threading.Thread(target=bot.infinity_polling)
-    bot_thread.daemon = True
-    bot_thread.start()
-    
-    # Flask esa asosiy portda ishlaydi, Render buni srazu muvaffaqiyatli deb qabul qiladi
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
