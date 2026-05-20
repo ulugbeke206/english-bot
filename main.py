@@ -4,14 +4,15 @@ from flask import Flask
 import telebot
 from telebot import types
 
-app = Flask(__name__)
+# Flask veb-server yaratamiz (Render port xatosi bermasligi uchun)
+app = Flask(__main__)
 
 @app.route('/')
 def home():
     return "Bot is running live!"
 
-# Tokenni Render tizimining o'zidan xavfsiz o'qiymiz
-TOKEN = os.environ.get('BOT_TOKEN')
+# Haqiqiy tokeningiz saqlab qolindi
+TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
 # Testlar bazasi
@@ -28,6 +29,7 @@ TESTS = [
     }
 ]
 
+# Bosh menyu tugmalari
 def get_main_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn_lexica = types.KeyboardButton("📖 Leksika (New Words)")
@@ -37,6 +39,7 @@ def get_main_keyboard():
     keyboard.add(btn_test)
     return keyboard
 
+# /start buyrug'i
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     welcome_text = (
@@ -46,6 +49,7 @@ def send_welcome(message):
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
 
+# Matnli xabarlarni va tugmalarni tutish
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
     if message.text == "📖 Leksika (New Words)":
@@ -76,6 +80,7 @@ def handle_menu(message):
         test_text = f"🧠 **Savol:**\n{test['question']}\n\n**Variantlar:**\n{options_text}\n\n*To'g'ri javobni o'zingiz tekshiring: {test['correct']}*"
         bot.send_message(message.chat.id, test_text)
 
+# Serverni va botni orqa fonda birga yurgizish qismi (To'g'rilandi)
 if __name__ == "__main__":
     import threading
     port = int(os.environ.get("PORT", 10000))
