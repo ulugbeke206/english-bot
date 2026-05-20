@@ -2,85 +2,57 @@ import os
 import random
 from flask import Flask
 import telebot
-from telebot import types
+from types import MethodType
 
-# Flask veb-server yaratamiz (Render port xatosi bermasligi uchun)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Bot is running live!"
 
-# Sizning tokeningiz joyida to'g'ri turibdi
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
-# Testlar bazasi
-TESTS = [
+# Har bir dars (kun) uchun alohida ma'lumotlar bazasi
+DAILY_LESSONS = [
     {
-        "question": "Choose the correct form:\nShe ___ to school every day.",
-        "options": ["go", "goes", "going", "gone"],
-        "correct": "goes"
+        "lexica": "📚 **Bugungi yangi so'zlar:**\n\n1. **Analyze** - Tahlil qilmoq\n2. **Beneficial** - Foydali\n3. **Challenge** - Qiyinchilik/Chaqiriq\n4. **Develop** - Rivojlantirmoq\n5. **Essential** - Juda muhim\n\n💡 _Ushbu so'zlarni yodlang va gaplar tuzishga harakat qiling!_",
+        "grammar": "✍️ **Present Perfect Tense (Yaqinda tugagan zamon):**\n\nFormula: `Subject + have/has + V3 (past participle)`\n\n📌 **Misollar:**\n• I have lost my keys. (Kalitlarimni yo'qotib qo'ydim).\n• She has already finished her homework. (U vazifasini bajarib bo'ldi).\n\n⚠️ Eslatma: 'Has' faqat He, She, It uchun ishlatiladi.",
+        "question": "3. 'Analyze' so'zining o'zbekcha ma'nosini toping:",
+        "options": ["Gapirmoq", "Tahlil qilmoq", "Tushunmoq", "Yozmoq"],
+        "correct_index": 1  # "Tahlil qilmoq" indeks raqami (0 dan boshlanadi)
     },
     {
-        "question": "What is the past tense of 'BUY'?",
-        "options": ["bought", "buyed", "brought", "buying"],
-        "correct": "bought"
+        "lexica": "📚 **Bugungi yangi so'zlar:**\n\n1. **Achieve** - Erishmoq\n2. **Improve** - Yaxshilamoq\n3. **Success** - Muvaffaqiyat\n4. **Experience** - Tajriba\n5. **Support** - Qo'llab-quvvatlamoq\n\n💡 _Ushbu so'zlarni yodlang va gaplar tuzishga harakat qiling!_",
+        "grammar": "✍️ **Past Simple Tense (O'tgan oddiy zamon):**\n\nFormula: `Subject + V2 / V-ed`\n\n📌 **Misollar:**\n• I watched a movie yesterday. (Kechaga kino ko'rdim).\n• They went to London last year. (Ular o'tgan yili Londonga ketishdi).",
+        "question": "3. What is the past tense of the verb 'BUY'?",
+        "options": ["Buyed", "Bought", "Brought", "Buying"],
+        "correct_index": 1  # "Bought"
     }
 ]
 
-# Bosh menyu tugmalari
-def get_main_keyboard():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn_lexica = types.KeyboardButton("📖 Leksika (New Words)")
-    btn_grammar = types.KeyboardButton("📝 Grammatika")
-    btn_test = types.KeyboardButton("🧠 Testni boshlash")
-    keyboard.add(btn_lexica, btn_grammar)
-    keyboard.add(btn_test)
-    return keyboard
-
-# /start buyrug'i
+# /start yuborilganda foydalanuvchiga srazu dars va test ketma-ket boradi
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    welcome_text = (
-        f"Salom, {message.from_user.first_name}! 👋\n"
-        "Ingliz tilini o'rganish botiga xush kelibsiz.\n"
-        "Quyidagi tugmalardan birini tanlang va darsni boshlang 👇"
+def send_lesson(message):
+    # Tasodifiy bitta dars to'plamini tanlaymiz
+    lesson = random.choice(DAILY_LESSONS)
+    
+    # 1. Leksika qismini yuboramiz
+    bot.send_message(message.chat.id, lesson["lexica"], parse_mode="Markdown")
+    
+    # 2. Grammatika qismini yuboramiz
+    bot.send_message(message.chat.id, lesson["grammar"], parse_mode="Markdown")
+    
+    # 3. Haqiqiy Telegram testini (Poll) yuboramiz
+    bot.send_poll(
+        chat_id=message.chat.id,
+        question=lesson["question"],
+        options=lesson["options"],
+        type="quiz",                  # Viktorina rejimi
+        correct_option_id=lesson["correct_index"], # To'g'ri javob indeksi
+        is_anonymous=False            # Kim nima belgilaganini ko'rish uchun
     )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
 
-# Matnli xabarlarni va tugmalarni tutish
-@bot.message_handler(func=lambda message: True)
-def handle_menu(message):
-    if message.text == "📖 Leksika (New Words)":
-        lexica_text = (
-            "📚 **Bugungi yangi so'zlar:**\n\n"
-            "1. **Achieve** - Erishmoq (yutuqqa)\n"
-            "2. **Challenge** - Qiyinchilik, chaqiriq\n"
-            "3. **Improve** - Rivojlantirmoq, yaxshilamoq\n"
-            "4. **Success** - Muvaffaqiyat\n"
-            "5. **Experience** - Tajriba"
-        )
-        bot.send_message(message.chat.id, lexica_text, parse_mode="Markdown")
-        
-    elif message.text == "📝 Grammatika":
-        grammar_text = (
-            "✍️ **Present Perfect Tense (Yaqinda tugagan zamon):**\n\n"
-            "Formula: Subject + have/has + V3 (past participle)\n\n"
-            "📌 **Misollar:**\n"
-            "• I have lost my keys. (Kalitlarimni yo'qotib qo'ydim).\n"
-            "• She has already finished her homework. (U vazifasini bajarib bo'ldi).\n\n"
-            "⚠️ Eslatma: 'Has' faqat He, She, It uchun ishlatiladi."
-        )
-        bot.send_message(message.chat.id, grammar_text)
-        
-    elif message.text == "🧠 Testni boshlash":
-        test = random.choice(TESTS)
-        options_text = "\n".join([f"- {opt}" for opt in test["options"]])
-        test_text = f"🧠 **Savol:**\n{test['question']}\n\n**Variantlar:**\n{options_text}\n\n*To'g'ri javobni o'zingiz tekshiring: {test['correct']}*"
-        bot.send_message(message.chat.id, test_text)
-
-# Mana shu qismlar to'liq to'g'rilandi:
 if __name__ == "__main__":
     import threading
     port = int(os.environ.get("PORT", 10000))
