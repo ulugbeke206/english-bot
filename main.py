@@ -12,7 +12,7 @@ def home():
     return "Bot is running live!"
 
 # 👇 DIQQAT: O'sha nusxalab olgan tokeningizni aynan mana shu qo'shtirnoq ichiga joylashtiring!
-TOKEN = '8957612617:AAfomulCeWizMIywQX_8UjK6IG0FopUsaQY'
+TOKEN = 'AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
 # Testlar bazasi
