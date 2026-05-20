@@ -55,11 +55,8 @@ def get_main_keyboard():
 # Tasodifiy test yuborish funksiyasi
 def send_random_test(chat_id):
     test = random.choice(TESTS)
-    
-    # Foydalanuvchi qaysi javobni tanlashi kerakligini eslab qolamiz
     user_correct_answers[chat_id] = test["correct"]
     
-    # Variantlar uchun tugmalar yaratamiz (Inline tugmalar)
     keyboard = types.InlineKeyboardMarkup()
     for option in test["options"]:
         keyboard.add(types.InlineKeyboardButton(text=option, callback_data=option))
@@ -76,7 +73,7 @@ def send_welcome(message):
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
 
-# Matnli xabarlarni tutish (Menyu tugmalari bosilganda)
+# Matnli xabarlarni tutish
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
     if message.text == "📖 Leksika (New Words)":
@@ -96,7 +93,7 @@ def handle_menu(message):
             "Formula: Subject + have/has + V3 (past participle)\n\n"
             "📌 **Misollar:**\n"
             "• I have lost my keys. (Kalitlarimni yo'qotib qo'ydim).\n"
-            "• She has already finished her homework. (U vazifasini bajaib bo'ldi).\n\n"
+            "• She has already finished her homework. (U vazifasini bajarib bo'ldi).\n\n"
             "⚠️ Eslatma: 'Has' faqat He, She, It uchun ishlatiladi."
         )
         bot.send_message(message.chat.id, grammar_text)
@@ -105,15 +102,17 @@ def handle_menu(message):
         bot.send_message(message.chat.id, "🚀 Test rejimi faollashdi! Savollarga javob bering:")
         send_random_test(message.chat.id)
 
-# Test javoblari bosilganda ishlaydigan qism (Callback query)
+# Test javoblari bosilganda ishlaydigan qism
 @bot.callback_query_handler(func=lambda call: True)
 def handle_test_answer(call):
     chat_id = call.message.chat.id
     user_answer = call.data
     correct_answer = user_correct_answers.get(chat_id)
 
-    # Eski tugmalarni o'chiramiz
-    bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=None)
+    try:
+        bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=None)
+    except:
+        pass
 
     if correct_answer:
         if user_answer == correct_answer:
@@ -121,16 +120,18 @@ def handle_test_answer(call):
         else:
             bot.send_message(chat_id, f"❌ Xato! To'g'ri javob: **{correct_answer}** edi. 😔", parse_mode="Markdown")
         
-        # Javob berilgandan keyin darhol keyingi testni yuborish mantiqi:
         send_random_test(chat_id)
     else:
         bot.send_message(chat_id, "Bu test muddati o'tgan. Iltimos, menyudan yangi test boshlang.")
 
-# Serverni yuritish qismi
+# Render uchun asosiy ishga tushirish qismi
 if __name__ == "__main__":
     import threading
-    port = int(os.environ.get("PORT", 10000))
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)).start()
+    # Telegram botni alohida oqimda (thread) yurgizamiz
+    bot_thread = threading.Thread(target=bot.infinity_polling)
+    bot_thread.daemon = True
+    bot_thread.start()
     
-    print("Bot is starting polling...")
-    bot.infinity_polling()
+    # Flask esa asosiy portda ishlaydi, Render buni srazu muvaffaqiyatli deb qabul qiladi
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
