@@ -11,7 +11,7 @@ app = Flask(__main__)
 def home():
     return "Bot is running live!"
 
-# Haqiqiy tokeningiz saqlab qolindi
+# 👇 DIQQAT: O'sha nusxalab olgan tokeningizni aynan mana shu qo'shtirnoq ichiga joylashtiring!
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
@@ -54,12 +54,12 @@ def send_welcome(message):
 def handle_menu(message):
     if message.text == "📖 Leksika (New Words)":
         lexica_text = (
-            "📚 **Bugungi yangi so'zlar:**\n\n"
-            "1. **Achieve** - Erishmoq (yutuqqa)\n"
-            "2. **Challenge** - Qiyinchilik, chaqiriq\n"
-            "3. **Improve** - Rivojlantirmoq, yaxshilamoq\n"
-            "4. **Success** - Muvaffaqiyat\n"
-            "5. **Experience** - Tajriba"
+            "📚 Bugungi yangi so'zlar:**\n\n"
+            "1. **Achieve - Erishmoq (yutuqqa)\n"
+            "2. Challenge - Qiyinchilik, chaqiriq\n"
+            "3. Improve - Rivojlantirmoq, yaxshilamoq\n"
+            "4. Success - Muvaffaqiyat\n"
+            "5. Experience - Tajriba"
         )
         bot.send_message(message.chat.id, lexica_text, parse_mode="Markdown")
         
@@ -80,8 +80,8 @@ def handle_menu(message):
         test_text = f"🧠 **Savol:**\n{test['question']}\n\n**Variantlar:**\n{options_text}\n\n*To'g'ri javobni o'zingiz tekshiring: {test['correct']}*"
         bot.send_message(message.chat.id, test_text)
 
-# Serverni va botni orqa fonda birga yurgizish qismi (To'g'rilandi)
-if __name__ == "__main__":
+# Serverni va botni orqa fonda birga yurgizish qismi
+if name == "main":
     import threading
     port = int(os.environ.get("PORT", 10000))
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)).start()
