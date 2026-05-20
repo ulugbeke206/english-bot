@@ -4,22 +4,12 @@ from flask import Flask
 import telebot
 from telebot import types
 
-# ⚠️ DIQQAT: Quyidagi qo'shtirnoq ichiga BotFather bergan o'zingizning haqiqiy tokeningizni qo'ying!
-TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
-bot = telebot.TeleBot(TOKEN)
-
-# Flask veb-server yaratamiz (Render port xatosi bermasligi va Failed bo'lmasligi uchun)
+# Flask veb-server yaratamiz
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    # Bu funksiya orqali bot har soniyada Telegram'dan yangi xabarlarni tekshiradi
-    if bot.get_webhook_info().url == "":
-        bot.remove_webhook()
-        # Render'da "Failed" bo'lmasligi uchun xabarlarni shu yerda ushlab turamiz
-        import threading
-        threading.Thread(target=bot.polling, kwargs={"none_stop": True}).start()
-    return "Bot muvaffaqiyatli ishlayapti!"
+# Telegram Bot Token (O'zingiznikini qo'ying)
+TOKEN = 'BU_YERGA_O_Z_TOKENINGIZNI_QO_YING'
+bot = telebot.TeleBot(TOKEN)
 
 # Testlar bazasi
 TESTS = [
@@ -47,7 +37,6 @@ TESTS = [
 
 user_correct_answers = {}
 
-# Bosh menyu tugmalari
 def get_main_keyboard():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn_lexica = types.KeyboardButton("📖 Leksika (New Words)")
@@ -57,7 +46,6 @@ def get_main_keyboard():
     keyboard.add(btn_test)
     return keyboard
 
-# Tasodifiy test yuborish funksiyasi
 def send_random_test(chat_id):
     test = random.choice(TESTS)
     user_correct_answers[chat_id] = test["correct"]
@@ -68,7 +56,6 @@ def send_random_test(chat_id):
         
     bot.send_message(chat_id, test["question"], reply_markup=keyboard)
 
-# /start buyrug'i
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     welcome_text = (
@@ -78,7 +65,6 @@ def send_welcome(message):
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard())
 
-# Matnli xabarlarni tutish
 @bot.message_handler(func=lambda message: True)
 def handle_menu(message):
     if message.text == "📖 Leksika (New Words)":
@@ -107,7 +93,6 @@ def handle_menu(message):
         bot.send_message(message.chat.id, "🚀 Test rejimi faollashdi! Savollarga javob bering:")
         send_random_test(message.chat.id)
 
-# Test javoblari bosilganda ishlaydigan qism
 @bot.callback_query_handler(func=lambda call: True)
 def handle_test_answer(call):
     chat_id = call.message.chat.id
@@ -129,7 +114,16 @@ def handle_test_answer(call):
     else:
         bot.send_message(chat_id, "Bu test muddati o'tgan. Iltimos, menyudan yangi test boshlang.")
 
-# Loyihani ishga tushirish
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+# Render birinchi bo'lib tekshiradigan asosiy sahifa
+@app.route('/')
+def home():
+    return "Bot muvaffaqiyatli ishlayapti!"
+
+# Bot orqa fonda xabarlarni doimiy eshitib turishi uchun funksiya
+def run_bot():
+    bot.remove_webhook()
+    bot.infinity_polling(none_stop=True)
+
+# Loyiha ishga tushganda bot alohida oqimda srazu yoqiladi
+import threading
+threading.Thread(target=run_bot, daemon=True).start()
