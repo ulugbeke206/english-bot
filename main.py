@@ -54,7 +54,7 @@ def main_keyboard():
     return markup
 
 # /start buyrug'i
-@bot.message_with_type_handler(commands=['start'])
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n"
@@ -73,12 +73,10 @@ def handle_menu(message):
         bot.send_message(message.chat.id, LESSONS["grammar"], parse_mode="Markdown")
         
     elif message.text == "🧠 Testni boshlash":
-        # Tasodifiy bitta test tanlash
         quiz = random.choice(QUIZ_DATA)
         markup = types.InlineKeyboardMarkup(row_width=1)
         
         for option in quiz["options"]:
-            # callback_data orqali javobni tekshiramiz
             is_correct = "yes" if option == quiz["correct"] else "no"
             btn = types.InlineKeyboardButton(option, callback_data=f"quiz_{is_correct}_{quiz['correct']}")
             markup.add(btn)
