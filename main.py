@@ -1,7 +1,27 @@
 import telebot
 import random
 from telebot import types
+import os
+from threading import Thread
+from flask import Flask
 
+# Render port xatosini to'g'rilash uchun kichik Web-Server yaratamiz
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot muvaffaqiyatli ishlamoqda!"
+
+def run():
+    # Render avtomatik taqdim etadigan portni oladi, bo'lmasa 8080 da ishlaydi
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# Botni sozlash
 TOKEN = '8957612617:AAFomuLCeWizMIywQX_8UjK6IG0FopUsaQY'
 bot = telebot.TeleBot(TOKEN)
 
@@ -20,7 +40,7 @@ LESSONS = {
         "✍️ **Present Perfect Tense (Yaqinda tugagan zamon):**\n\n"
         "Formula: `Subject + have/has + V3 (past participle)`\n\n"
         "📌 **Misollar:**\n"
-        "• I **have lost** my keys. (Kalitlarimni yo'qotib qo'ydim - natijasi hozir ma'lum).\n"
+        "• I **have lost** my keys. (Kalitlarimni yo'qotib qo'ydim).\n"
         "• She **has already finished** her homework. (U vazifasini bajarib bo'ldi).\n\n"
         "⚠️ *Eslatma: 'Has' faqat He, She, It uchun ishlatiladi.*"
     )
@@ -86,7 +106,7 @@ def handle_menu(message):
     else:
         bot.send_message(message.chat.id, "Iltimos, menyudagi tugmalardan birini bosing.", reply_markup=main_keyboard())
 
-# Inline tugmalar (test javoblari) uchun tekshirgich
+# Inline tugmalar uchun tekshirgich
 @bot.callback_query_handler(func=lambda call: call.data.startswith('quiz_'))
 def check_quiz_answer(call):
     data_parts = call.data.split('_')
@@ -102,6 +122,7 @@ def check_quiz_answer(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
                               text=f"{call.message.text}\n\n❌ **Xato javob berdingiz.**\nTo'g'ri javob: *{correct_answer}*", parse_mode="Markdown")
 
-# Botni uzluksiz ishlatish
+# Botni uzluksiz va veb-server bilan birga ishlatish
 if __name__ == '__main__':
+    keep_alive()  # Kichik veb-serverni parallel ravishda ishga tushiradi
     bot.infinity_polling()
