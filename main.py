@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running live with Real MP3 Audio Feature!"
+    return "Bot is running live with Clean English Menu!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
@@ -43,32 +43,6 @@ TESTS_POOL = [
     {"q": "Look! The birds ___ in the sky right now.", "o": ["flies", "are flying", "flew", "fly"], "c": 1}
 ]
 
-# ==========================================
-# 🎵 4. HAQIQIY AUDIO FAYLLAR BAZASI
-# ==========================================
-MUSIC_DATABASE = {
-    "indila": {
-        "performer": "Indila", 
-        "title": "Tourner Dans Le Vide", 
-        "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    }, 
-    "tourner dans le vide": {
-        "performer": "Indila", 
-        "title": "Tourner Dans Le Vide", 
-        "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    },
-    "papaoutai": {
-        "performer": "Stromae", 
-        "title": "Papaoutai", 
-        "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
-    },
-    "mockingbird": {
-        "performer": "Eminem", 
-        "title": "Mockingbird", 
-        "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
-    }
-}
-
 user_data = {}
 
 def init_user(user_id):
@@ -82,10 +56,11 @@ def init_user(user_id):
             "state": None
         }
 
+# 🎛 TOZA ASOSIY MENYU (Qo'shiqlar bo'limi olib tashlandi)
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(types.KeyboardButton("📖 Yangi so'z"), types.KeyboardButton("📝 Grammatika"))
-    keyboard.add(types.KeyboardButton("🧠 Test ishlash"), types.KeyboardButton("🎵 Qo'shiqlar"))
+    keyboard.add(types.KeyboardButton("🧠 Test ishlash"))
     return keyboard
 
 def get_quantity_menu():
@@ -104,7 +79,7 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Musiqa yuklash tizimi muvaffaqiyatli ishga tushdi.\n"
+        "Ingliz tili botiga xush kelibsiz.\n"
         "Kerakli bo'limni tanlang: 👇"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
@@ -114,48 +89,6 @@ def handle_messages(message):
     user_id = message.from_user.id
     init_user(user_id)
     u = user_data[user_id]
-    text = message.text.lower().strip()
-
-    # --- 🎵 QO'SHIQLAR REJIMI (HAQIQIY MP3 YUBORISH) ---
-    if u["state"] == "waiting_for_music":
-        if message.text == "⬅️ Orqaga":
-            u["state"] = None
-            bot.send_message(message.chat.id, "Asosiy menyuga qaytdingiz.", reply_markup=get_main_menu())
-            return
-
-        status_msg = bot.send_message(message.chat.id, "⚡️ Qo'shiq yuklanmoqda, iltimos kuting...")
-        
-        found_song = None
-        for key, music_info in MUSIC_DATABASE.items():
-            if key in text:
-                found_song = music_info
-                break
-        
-        if found_song:
-            try:
-                bot.delete_message(message.chat.id, status_msg.message_id)
-                bot.send_audio(
-                    chat_id=message.chat.id,
-                    audio=found_song["url"],
-                    performer=found_song["performer"],
-                    title=found_song["title"],
-                    caption="📥 Qo'shiq muvaffaqiyatli yuklab olindi!"
-                )
-            except Exception:
-                bot.send_message(message.chat.id, "❌ Audio faylni yuborishda xatolik yuz berdi.")
-        else:
-            bot.delete_message(message.chat.id, status_msg.message_id)
-            try:
-                bot.send_audio(
-                    chat_id=message.chat.id,
-                    audio="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-                    performer="Musiqa",
-                    title=message.text.title(),
-                    caption="📥 Siz so'ragan qo'shiq tayyor!"
-                )
-            except Exception:
-                bot.send_message(message.chat.id, "❌ Qo'shiqni topib bo'lmadi.")
-        return
 
     # --- 📖 YANGI SO'Z ---
     if message.text == "📖 Yangi so'z":
@@ -186,17 +119,6 @@ def handle_messages(message):
         u["total_requested"] = quantity
         bot.send_message(message.chat.id, f"🚀 {quantity} ta takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
         send_next_queue_test(message.chat.id, user_id)
-
-    # --- 🎵 QO'SHIQLAR TUGMASI ---
-    elif message.text == "🎵 Qo'shiqlar":
-        u["state"] = "waiting_for_music"
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(types.KeyboardButton("⬅️ Orqaga"))
-        bot.send_message(
-            message.chat.id, 
-            "🎵 **Qo'shiqlar bo'limi faol!**\n\nIstalgan qo'shiq nomini yozing, men sizga haqiqiy pleyerli MP3 fayl yuboraman. 👇",
-            reply_markup=keyboard
-        )
 
     elif message.text == "⬅️ Orqaga":
         bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=get_main_menu())
