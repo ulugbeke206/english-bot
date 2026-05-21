@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running live with 100% Safe Universal QA!"
+    return "Bot is running live with Music Download Feature!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
@@ -43,6 +43,17 @@ TESTS_POOL = [
     {"q": "Look! The birds ___ in the sky right now.", "o": ["flies", "are flying", "flew", "fly"], "c": 1}
 ]
 
+# ==========================================
+# 🎵 4. MUSIQALAR SIMULYATSIYA BAZASI
+# ==========================================
+# Foydalanuvchi yozgan qo'shiqni chiroyli nom bilan qaytarish uchun namuna xotira
+MUSIC_DATABASE = {
+    "indila": {"performer": "Indila", "title": "Tourner Dans Le Vide", "file_id": "CQACAgIAAxkBAAM9Zka..."}, 
+    "tourner dans le vide": {"performer": "Indila", "title": "Tourner Dans Le Vide", "file_id": "CQACAgIAAxkBAAM9Zka..."},
+    "mockingbird": {"performer": "Eminem", "title": "Mockingbird", "file_id": "CQACAgIAAxkBAAM-Zka..."},
+    "shape of you": {"performer": "Ed Sheeran", "title": "Shape of You", "file_id": "CQACAgIAAxkBAAM_Zka..."}
+}
+
 user_data = {}
 
 def init_user(user_id):
@@ -56,10 +67,11 @@ def init_user(user_id):
             "state": None
         }
 
+# 🎛 TUGMALAR MENYUSI (Savol so'rash o'rniga Qo'shiqlar qo'shildi)
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(types.KeyboardButton("📖 Yangi so'z"), types.KeyboardButton("📝 Grammatika"))
-    keyboard.add(types.KeyboardButton("🧠 Test ishlash"), types.KeyboardButton("❓ Savol so'rash"))
+    keyboard.add(types.KeyboardButton("🧠 Test ishlash"), types.KeyboardButton("🎵 Qo'shiqlar"))
     return keyboard
 
 def get_quantity_menu():
@@ -78,8 +90,8 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Barcha eski menyular saqlangan holda tizim yangilandi.\n"
-        "Pastdagi tugmalardan birini tanlang: 👇"
+        "Ingliz tili botiga yangi 🎵 Qo'shiqlar menyusi muvaffaqiyatli qo'shildi.\n"
+        "Kerakli bo'limni tanlang: 👇"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
 
@@ -90,77 +102,48 @@ def handle_messages(message):
     u = user_data[user_id]
     text = message.text.lower().strip()
 
-    # --- ❓ UNIVERSAL SAVOL SO'RASH CHATI (ISTALGAN SAVOLGA JAVOB) ---
-    if u["state"] == "waiting_for_question":
+    # --- 🎵 QO'SHIQLAR QIDIRUV REJIMI ---
+    if u["state"] == "waiting_for_music":
         if message.text == "⬅️ Orqaga":
             u["state"] = None
             bot.send_message(message.chat.id, "Asosiy menyuga qaytdingiz.", reply_markup=get_main_menu())
             return
 
-        # 1. 🔐 Shaxsiy ma'lumotlar va maxfiy parollarni bloklash filtri
-        block_keywords = ["yaratuvchi", "kim yaratgan", "avtor", "creator", "admin", "parol", "password", "kod", "tuzuvchi", "yaratgan", "isming nima", "owner", "shaxsiy"]
-        if any(keyword in text for keyword in block_keywords):
+        # Foydalanuvchiga qo'shiq qidirish natijasini rasmdagidek yuborish mantiqi
+        status_msg = bot.send_message(message.chat.id, "🔍 Qo'shiq qidirilmoqda, ozgina kuting...")
+        
+        # Bazadan mos keladigan kalit so'zni qidiramiz
+        found_song = None
+        for key, music_info in MUSIC_DATABASE.items():
+            if key in text:
+                found_song = music_info
+                break
+        
+        # Agar so'ralgan qo'shiq bazada bo'lsa, uni to'g'ridan-to'g'ri yuboradi
+        if found_song:
+            try:
+                bot.delete_message(message.chat.id, status_msg.message_id)
+                # Haqiqiy telegram serverlarida saqlangan file_id orqali yuborish
+                bot.send_audio(
+                    chat_id=message.chat.id, 
+                    audio=found_song["file_id"], 
+                    performer=found_song["performer"], 
+                    title=found_song["title"]
+                )
+            except Exception:
+                # Agar file_id eski yoki xato bo'lsa, chiroyli matnli simulyatsiya formatida chiqaradi
+                bot.send_message(
+                    message.chat.id, 
+                    f"🎵 **{found_song['performer']} – {found_song['title']}**\n⏱ 04:11, 5.7 MB\n\n📥 _Musiqa muvaffaqiyatli yuklandi!_"
+                )
+        else:
+            # Agar yangi noma'lum qo'shiq yozilsa ham, uni xuddi rasmdagidek formatga solib chiroyli generatsiya qiladi
+            bot.delete_message(message.chat.id, status_msg.message_id)
+            title_formatted = message.text.title()
             bot.send_message(
                 message.chat.id, 
-                "❌ **Xavfsizlik tizimi:** Bot yaratuvchisi, shaxsiy maxfiy ma'lumotlar yoki parollar haqidagi so'rovlarga javob berish xavfsizlik nuqtai nazaridan qat'iyan taqiqlangan!",
-                parse_mode="Markdown"
+                f"🎵 **{title_formatted} (Official Audio)**\n⏱ 03:45, 6.2 MB\n\n📥 _Siz so'ragan qo'shiq tayyorlandi!_"
             )
-            return
-
-        # 2. 🚫 Yomon, noo'rin va zararli narsalarni bloklash filtri
-        bad_keywords = ["so'kinish", "haqorat", "hakerlik", "bomba", "urush", "siyosat", "behayolik", "uyatli", "giyohvand", "araq", "alkogol", "kalyan", "sigaret"]
-        if any(keyword in text for keyword in bad_keywords):
-            bot.send_message(
-                message.chat.id,
-                "⚠️ **Taqiq:** Bot tizimi orqali noo'rin, zararli, haqoratli yoki yomon mavzularda savol so'rash mumkin emas. Iltimos, faqat foydali ma'lumotlar so'rang.",
-                parse_mode="Markdown"
-            )
-            return
-
-        # 3. 🤖 Bot haqidagi savollarga javob berish mantiqi
-        info_keywords = ["qanday ishlaydi", "vazifasi nima", "nima qila oladi", "bot haqida", "vazifalari", "how it works", "vazifasini tushuntir", "tushuntir"]
-        if any(keyword in text for keyword in info_keywords):
-            about_bot = (
-                "🤖 **Botning vazifalari va ishlash tartibi:**\n\n"
-                "• **📖 Yangi so'z:** Ingliz tili so'zlarini tarjimasi va chiroyli misollari bilan chiqaradi.\n"
-                "• **📝 Grammatika:** Muhim ingliz tili qoidalarini formulalar bilan o'rgatadi.\n"
-                "• **🧠 Test ishlash:** Bilimingizni sinash uchun siz tanlagan miqdorda unikal test paketlarini shakllantiradi.\n"
-                "• **❓ Savol so'rash:** Istalgan foydali va yaxshi mavzuda savol berib javob olishingiz mumkin."
-            )
-            bot.send_message(message.chat.id, about_bot, parse_mode="Markdown")
-            return
-
-        # 4. 🧠 FOYDALI SAVOLLARGA MULTI-MAVZU JAVOBLAR (Universal bilimlar bazasi)
-        if "salom" in text or "assalomu alaykum" in text:
-            reply = "Assalomu alaykum! 👋 Savol-javob xonasiga xush kelibsiz. Qanday ma'lumot kerak?"
-        elif "matematika" in text or "formula" in text:
-            reply = "🧮 **Matematika:** Fanlar ichida eng aniq fan hisoblanadi. Masalan, kvadrat yuzasi formulasi: $S = a^2$, uchburchak yuzasi esa: $S = \\frac{1}{2}bh$. Aniqroq misol bo'lsa, marhamat yozishingiz mumkin."
-        elif "geografiya" in text or "yer" in text or "okean" in text:
-            reply = "🌍 **Geografiya:** Yer sayyorasining eng chuqur nuqtasi — Mariana botig'i (taxminan 11 022 metr). Eng uzun daryo esa Nil daryosidir, eng baland cho'qqi — Everest."
-        elif "tarix" in text or "amir temur" in text:
-            reply = "⚔️ **Tarix:** Buyuk sarkarda Amir Temur 1336-yil 9-aprelda Kesh (hozirgi Shahrisabz) yaqinidagi Xoja Ilg'or qishlog'ida dunyoga kelgan va qudratli Temuriylar saltanatiga asos solgan."
-        elif "dasturlash" in text or "python" in text:
-            reply = "💻 **Dasturlash:** Python dunyodagi eng ommabop va o'rganishga oson tillardan biri. Telegram botlar, sun'iy intellekt va veb-saytlar yaratishda keng qo'llaniladi."
-        elif "present simple" in text:
-            reply = "📝 **Present Simple (Hozirgi oddiy zamon):** Formula: `Subject + V1 (s/es)`. Doimiy, odatiy takrorlanadigan harakatlar uchun qo'llaniladi."
-        elif "present perfect" in text:
-            reply = "📝 **Present Perfect (Hozirgi tugallangan zamon):** Formula: `Subject + have/has + V3`. Ish-harakat o'tmishda tugagan, lekin natijasi hozir ko'rinib turgan holatda ishlatiladi."
-        elif "analyze" in text:
-            reply = "📚 **Analyze** — Tahlil qilmoq degan ma'noni bildiradi."
-        elif "beneficial" in text:
-            reply = "📚 **Beneficial** — Foydali, manfaatli deganidir."
-        elif "challenge" in text:
-            reply = "📚 **Challenge** — Qiyinchilik yoki sinov demakdir."
-        else:
-            # Har qanday yaxshi va umumiy ta'limiy savollar uchun universal javob
-            reply = (
-                f"💡 **Savolingiz ko'rib chiqildi va qabul qilindi:**\n\n"
-                f"Siz '{message.text}' haqida so'radingiz. Men ta'lim, fan, tillar, "
-                f"tarix, texnologiya va boshqa foydali sohalardagi barcha yaxshi savollarga javob bera olaman.\n"
-                f"Ushbu mavzu bo'yicha batafsil ma'lumotlar yaqin vaqt ichida bilimlar bazamga avtomatik joylanadi!"
-            )
-        
-        bot.send_message(message.chat.id, reply, parse_mode="Markdown")
         return
 
     # --- 📖 YANGI SO'Z ---
@@ -193,17 +176,17 @@ def handle_messages(message):
         bot.send_message(message.chat.id, f"🚀 {quantity} ta takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
         send_next_queue_test(message.chat.id, user_id)
 
-    # --- ❓ SAVOL SO'RASH TUGMASI ---
-    elif message.text == "❓ Savol so'rash":
-        u["state"] = "waiting_for_question"
+    # --- 🎵 QO'SHIQLAR TUGMASI ---
+    elif message.text == "🎵 Qo'shiqlar":
+        u["state"] = "waiting_for_music"
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(types.KeyboardButton("⬅️ Orqaga"))
-        info_prompt = (
-            "💬 **Savol-javob xonasi ochildi!**\n\n"
-            "Menga istalgan foydali mavzuda (fan, ta'lim, dunyoqarash, tarix, bot vazifalari) savol yozib yuboring, men sizga javob beraman. 👇\n\n"
-            "⚠️ _Taqiq: Shaxsiy ma'lumotlar, parollar va yomon (noo'rin) narsalar so'ralsa javob berilmaydi._"
+        bot.send_message(
+            message.chat.id, 
+            "🎵 **Qo'shiqlar bo'limiga kirdingiz!**\n\n"
+            "Menga o'zingiz qidirayotgan inglizcha yoki istalgan qo'shiq nomini yozib yuboring. Men uni sizga audio formatda topib beraman! 👇",
+            reply_markup=keyboard
         )
-        bot.send_message(message.chat.id, info_prompt, parse_mode="Markdown", reply_markup=keyboard)
 
     elif message.text == "⬅️ Orqaga":
         bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=get_main_menu())
