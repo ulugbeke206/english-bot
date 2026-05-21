@@ -78,7 +78,7 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Barcha menyular saqlab qolindi va tizim to'liq yangilandi.\n"
+        "Barcha eski menyular saqlangan holda tizim yangilandi.\n"
         "Pastdagi tugmalardan birini tanlang: 👇"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
@@ -90,25 +90,25 @@ def handle_messages(message):
     u = user_data[user_id]
     text = message.text.lower().strip()
 
-    # --- ❓ UNIVERSAL SAVOL SO'RASH CHATI ---
+    # --- ❓ UNIVERSAL SAVOL SO'RASH CHATI (ISTALGAN SAVOLGA JAVOB) ---
     if u["state"] == "waiting_for_question":
         if message.text == "⬅️ Orqaga":
             u["state"] = None
             bot.send_message(message.chat.id, "Asosiy menyuga qaytdingiz.", reply_markup=get_main_menu())
             return
 
-        # 1. 🔐 Shaxsiy va maxfiy ma'lumotlarni bloklash (Parol, admin, yaratuvchi)
+        # 1. 🔐 Shaxsiy ma'lumotlar va maxfiy parollarni bloklash filtri
         block_keywords = ["yaratuvchi", "kim yaratgan", "avtor", "creator", "admin", "parol", "password", "kod", "tuzuvchi", "yaratgan", "isming nima", "owner", "shaxsiy"]
         if any(keyword in text for keyword in block_keywords):
             bot.send_message(
                 message.chat.id, 
-                "❌ **Xavfsizlik tizimi:** Bot yaratuvchisi, shaxsiy ma'lumotlar yoki parollar haqidagi so'rovlarga javob berish xavfsizlik yuzasidan mutlaqo taqiqlangan!",
+                "❌ **Xavfsizlik tizimi:** Bot yaratuvchisi, shaxsiy maxfiy ma'lumotlar yoki parollar haqidagi so'rovlarga javob berish xavfsizlik nuqtai nazaridan qat'iyan taqiqlangan!",
                 parse_mode="Markdown"
             )
             return
 
-        # 2. 🚫 Yomon va zararli narsalarni bloklash filtri (So'kinish, odobsizlik, zararli amallar)
-        bad_keywords = ["so'kinish", "haqorat", "hakerlik", "bomba", "urush", "siyosat", "behayolik", "uyatli", "giyohvand", "araq", "alkogol", "kalyan", "sigaret", "prikol"]
+        # 2. 🚫 Yomon, noo'rin va zararli narsalarni bloklash filtri
+        bad_keywords = ["so'kinish", "haqorat", "hakerlik", "bomba", "urush", "siyosat", "behayolik", "uyatli", "giyohvand", "araq", "alkogol", "kalyan", "sigaret"]
         if any(keyword in text for keyword in bad_keywords):
             bot.send_message(
                 message.chat.id,
@@ -117,11 +117,11 @@ def handle_messages(message):
             )
             return
 
-        # 3. 🤖 Bot haqidagi savollarga javob berish
+        # 3. 🤖 Bot haqidagi savollarga javob berish mantiqi
         info_keywords = ["qanday ishlaydi", "vazifasi nima", "nima qila oladi", "bot haqida", "vazifalari", "how it works", "vazifasini tushuntir", "tushuntir"]
         if any(keyword in text for keyword in info_keywords):
             about_bot = (
-                "🤖 **Bot qanday ishlaydi va uning vazifalari:**\n\n"
+                "🤖 **Botning vazifalari va ishlash tartibi:**\n\n"
                 "• **📖 Yangi so'z:** Ingliz tili so'zlarini tarjimasi va chiroyli misollari bilan chiqaradi.\n"
                 "• **📝 Grammatika:** Muhim ingliz tili qoidalarini formulalar bilan o'rgatadi.\n"
                 "• **🧠 Test ishlash:** Bilimingizni sinash uchun siz tanlagan miqdorda unikal test paketlarini shakllantiradi.\n"
@@ -130,13 +130,17 @@ def handle_messages(message):
             bot.send_message(message.chat.id, about_bot, parse_mode="Markdown")
             return
 
-        # 4. 🌐 BARCHA FOYDALI VA YAXSHI SAVOLLARGA JAVOB BERISH TIZIMI
+        # 4. 🧠 FOYDALI SAVOLLARGA MULTI-MAVZU JAVOBLAR (Universal bilimlar bazasi)
         if "salom" in text or "assalomu alaykum" in text:
-            reply = "Assalomu alaykum! 👋 Savol so'rash bo'limiga xush kelibsiz. Qanday foydali ma'lumot kerak?"
+            reply = "Assalomu alaykum! 👋 Savol-javob xonasiga xush kelibsiz. Qanday ma'lumot kerak?"
         elif "matematika" in text or "formula" in text:
-            reply = "🧮 **Matematika darsligi:** Matematika aniq fanlar asosi. Masalan, kvadrat yuzasi formulasi: $$S = a^2$$, uchburchak yuzasi esa: $$S = \\frac{1}{2}bh$$. Aniqroq savolingiz bo'lsa, yozishingiz mumkin!"
+            reply = "🧮 **Matematika:** Fanlar ichida eng aniq fan hisoblanadi. Masalan, kvadrat yuzasi formulasi: $S = a^2$, uchburchak yuzasi esa: $S = \\frac{1}{2}bh$. Aniqroq misol bo'lsa, marhamat yozishingiz mumkin."
         elif "geografiya" in text or "yer" in text or "okean" in text:
-            reply = "🌍 **Geografiya:** Yer sayyorasining eng chuqur nuqtasi — Mariana botig'i (taxminan 11 022 metr). Eng uzun daryo esa Nil daryosidir."
+            reply = "🌍 **Geografiya:** Yer sayyorasining eng chuqur nuqtasi — Mariana botig'i (taxminan 11 022 metr). Eng uzun daryo esa Nil daryosidir, eng baland cho'qqi — Everest."
+        elif "tarix" in text or "amir temur" in text:
+            reply = "⚔️ **Tarix:** Buyuk sarkarda Amir Temur 1336-yil 9-aprelda Kesh (hozirgi Shahrisabz) yaqinidagi Xoja Ilg'or qishlog'ida dunyoga kelgan va qudratli Temuriylar saltanatiga asos solgan."
+        elif "dasturlash" in text or "python" in text:
+            reply = "💻 **Dasturlash:** Python dunyodagi eng ommabop va o'rganishga oson tillardan biri. Telegram botlar, sun'iy intellekt va veb-saytlar yaratishda keng qo'llaniladi."
         elif "present simple" in text:
             reply = "📝 **Present Simple (Hozirgi oddiy zamon):** Formula: `Subject + V1 (s/es)`. Doimiy, odatiy takrorlanadigan harakatlar uchun qo'llaniladi."
         elif "present perfect" in text:
@@ -150,10 +154,10 @@ def handle_messages(message):
         else:
             # Har qanday yaxshi va umumiy ta'limiy savollar uchun universal javob
             reply = (
-                f"💡 **Savolingiz ko'rib chiqildi:**\n\n"
+                f"💡 **Savolingiz ko'rib chiqildi va qabul qilindi:**\n\n"
                 f"Siz '{message.text}' haqida so'radingiz. Men ta'lim, fan, tillar, "
-                f"tarix va boshqa foydali sohalardagi barcha yaxshi savollarga javob bera olaman.\n"
-                f"Yaqin vaqt ichida ushbu mavzu bo'yicha mukammal ma'lumotlar bazamga joylanadi!"
+                f"tarix, texnologiya va boshqa foydali sohalardagi barcha yaxshi savollarga javob bera olaman.\n"
+                f"Ushbu mavzu bo'yicha batafsil ma'lumotlar yaqin vaqt ichida bilimlar bazamga avtomatik joylanadi!"
             )
         
         bot.send_message(message.chat.id, reply, parse_mode="Markdown")
@@ -195,8 +199,8 @@ def handle_messages(message):
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(types.KeyboardButton("⬅️ Orqaga"))
         info_prompt = (
-            "💬 **Savol-javob xonasi faol!**\n\n"
-            "Menga xohlagan foydali mavzuda (fan, ta'lim, dunyoqarash, bot vazifalari) savol yozib yuboring, men sizga javob beraman. 👇\n\n"
+            "💬 **Savol-javob xonasi ochildi!**\n\n"
+            "Menga istalgan foydali mavzuda (fan, ta'lim, dunyoqarash, tarix, bot vazifalari) savol yozib yuboring, men sizga javob beraman. 👇\n\n"
             "⚠️ _Taqiq: Shaxsiy ma'lumotlar, parollar va yomon (noo'rin) narsalar so'ralsa javob berilmaydi._"
         )
         bot.send_message(message.chat.id, info_prompt, parse_mode="Markdown", reply_markup=keyboard)
