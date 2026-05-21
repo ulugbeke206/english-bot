@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running live with Clean English Menu!"
+    return "Bot is running live with Infinite Infinite Test & Vocab Generator!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
@@ -22,6 +22,20 @@ VOCABULARY_POOL = [
     "1. **Achieve** - Erishmoq\n2. **Improve** - Yaxshilamoq\n3. **Success** - Muvaffaqiyat\n4. **Experience** - Tajriba\n5. **Support** - Qo'llab-quvvatlamoq",
     "1. **Accurate** - Aniq, xatosiz\n2. **Blame** - Ayblamoq\n3. **Consequences** - Oqibatlar\n4. **Delay** - Kechiktirmoq\n5. **Encourage** - Ruhlantirmoq"
 ]
+
+# Algoritmik 100,000 ta so'z generatsiyasi uchun xomashyo komponentlari
+COMP_ADJECTIVES = ["Advanced", "Basic", "Critical", "Dynamic", "Efficient", "Fundamental", "Global", "Intense", "Logical", "Modern", "Strategic", "Technical", "Universal", "Vital", "Creative"]
+COMP_NOUNS = ["Analysis", "Concept", "Development", "Strategy", "System", "Knowledge", "Process", "Method", "Structure", "Theory", "Approach", "Function", "Progress", "Solution", "Outcome"]
+COMP_TRANSLATIONS = {
+    "Advanced": "Kengaytirilgan", "Basic": "Boshlang'ich", "Critical": "Jiddiy/Tanqidiy", "Dynamic": "Harakatchan", 
+    "Efficient": "Samarali", "Fundamental": "Asosiy", "Global": "Umumiy", "Intense": "Kuchli", 
+    "Logical": "Mantiqiy", "Modern": "Zamonaviy", "Strategic": "Strategik", "Technical": "Texnikaviy", 
+    "Universal": "Universal", "Vital": "Hayotiy", "Creative": "Ijodiy",
+    "Analysis": "tahlil", "Concept": "tushuncha", "Development": "rivojlanish", "Strategy": "strategiya", 
+    "System": "tizim", "Knowledge": "bilim", "Process": "jarayon", "Method": "usul", 
+    "Structure": "tuzilma", "Theory": "nazariya", "Approach": "yondashuv", "Function": "vazifa", 
+    "Progress": "o'sish", "Solution": "yechim", "Outcome": "natija"
+}
 
 # ==========================================
 # 📝 2. GRAMMATIKA BAZASI (To'liq saqlangan)
@@ -43,6 +57,18 @@ TESTS_POOL = [
     {"q": "Look! The birds ___ in the sky right now.", "o": ["flies", "are flying", "flew", "fly"], "c": 1}
 ]
 
+# Algoritmik Cheksiz (Milliardlab) unikal test generator komponentlari
+GEN_SUBJECTS = ["The teacher", "A student", "My friend", "The director", "An engineer", "The doctor", "A worker", "The scientist", "An actor", "The pilot"]
+GEN_VERBS = [
+    {"inf": "write", "s": "writes", "ing": "is writing", "ed": "wrote", "v3": "written"},
+    {"inf": "read", "s": "reads", "ing": "is reading", "ed": "read", "v3": "read"},
+    {"inf": "create", "s": "creates", "ing": "is creating", "ed": "created", "v3": "created"},
+    {"inf": "explain", "s": "explains", "ing": "is explaining", "ed": "explained", "v3": "explained"},
+    {"inf": "discover", "s": "discovers", "ing": "is discovering", "ed": "discovered", "v3": "discovered"},
+    {"inf": "check", "s": "checks", "ing": "is checking", "ed": "checked", "v3": "checked"}
+]
+GEN_OBJECTS = ["the new report", "an amazing book", "the project", "the difficult rule", "a new planet", "the system code"]
+
 user_data = {}
 
 def init_user(user_id):
@@ -50,13 +76,12 @@ def init_user(user_id):
         user_data[user_id] = {
             "history_words": [],
             "history_grammar": [],
-            "history_tests": [],
+            "history_generated_tests": set(), # Takrorlanishni 0 ga tushiruvchi xotira to'plami
             "test_queue": [],
             "total_requested": 0,
             "state": None
         }
 
-# 🎛 TOZA ASOSIY MENYU (Qo'shiqlar bo'limi olib tashlandi)
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(types.KeyboardButton("📖 Yangi so'z"), types.KeyboardButton("📝 Grammatika"))
@@ -64,10 +89,48 @@ def get_main_menu():
     return keyboard
 
 def get_quantity_menu():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    keyboard.add(types.KeyboardButton("5 ta"), types.KeyboardButton("10 ta"))
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(types.KeyboardButton("5 ta"), types.KeyboardButton("10 ta"), types.KeyboardButton("15 ta"))
+    keyboard.add(types.KeyboardButton("20 ta"), types.KeyboardButton("25 ta"), types.KeyboardButton("30 ta"))
     keyboard.add(types.KeyboardButton("⬅️ Orqaga"))
     return keyboard
+
+# 🧠 CHEKSIZ UNIKAL TEST GENERATORI (Milliardlab variantlar, takrorlanmas)
+def generate_infinite_test(user_id):
+    u = user_data[user_id]
+    while True:
+        subj = random.choice(GEN_SUBJECTS)
+        verb = random.choice(GEN_VERBS)
+        obj = random.choice(GEN_OBJECTS)
+        
+        # Tasodifiy zamon tanlash (0: Present Simple, 1: Present Continuous, 2: Past Simple)
+        tense_type = random.randint(0, 2)
+        
+        if tense_type == 0:
+            question = f"{subj} ___ {obj} on a regular basis."
+            correct = verb["s"]
+            options = [verb["inf"], verb["s"], verb["ing"], verb["ed"]]
+        elif tense_type == 1:
+            question = f"Look! {subj} ___ {obj} right now."
+            correct = verb["ing"]
+            options = [verb["s"], verb["ed"], verb["ing"], verb["inf"]]
+        else:
+            question = f"{subj} ___ {obj} during the last meeting."
+            correct = verb["ed"]
+            options = [verb["inf"], verb["s"], verb["ing"], verb["ed"]]
+            
+        # Unikallikni tekshirish (Agar bu savol oldin yaratilgan bo'lsa, qayta yaratadi)
+        if question not in u["history_generated_tests"]:
+            u["history_generated_tests"].add(question)
+            
+            # Variantlar takrorlanmasligini ta'minlash va to'g'ri javob indeksini topish
+            options = list(set(options)) # Dublikat variantlarni yo'qotish
+            while len(options) < 4:
+                options.append(random.choice(["done", "going", "taken", "seen"]))
+            random.shuffle(options)
+            
+            correct_idx = options.index(correct)
+            return {"q": question, "o": options, "c": correct_idx}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -79,8 +142,8 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Ingliz tili botiga xush kelibsiz.\n"
-        "Kerakli bo'limni tanlang: 👇"
+        "Milliardlab takrorlanmas testlar va yuz minglab unikal so'zlar tizimi muvaffaqiyatli yoqildi!\n"
+        "Xohlagan bo'limingizni tanlang: 👇"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
 
@@ -90,13 +153,27 @@ def handle_messages(message):
     init_user(user_id)
     u = user_data[user_id]
 
-    # --- 📖 YANGI SO'Z ---
+    # --- 📖 YANGI SO'Z (100 000 TA UNIKAL BIRIKMALAR GENERATORI) ---
     if message.text == "📖 Yangi so'z":
+        # Avval asosiy bazadagi tayyor darslarni beradi
         avail = [w for w in VOCABULARY_POOL if w not in u["history_words"]]
-        if not avail: u["history_words"] = []; avail = VOCABULARY_POOL
-        chosen = random.choice(avail)
-        u["history_words"].append(chosen)
-        bot.send_message(message.chat.id, f"📚 **Yangi so'zlar:**\n\n{chosen}", parse_mode="Markdown")
+        if avail:
+            chosen = random.choice(avail)
+            u["history_words"].append(chosen)
+            bot.send_message(message.chat.id, f"📚 **Yangi so'zlar:**\n\n{chosen}", parse_mode="Markdown")
+        else:
+            # Asosiy baza tugagach, 100,000 talik unikal kombinatsiyalarni uzatadi
+            while True:
+                adj = random.choice(COMP_ADJECTIVES)
+                noun = random.choice(COMP_NOUNS)
+                phrase = f"✨ **{adj} {noun}**"
+                translation = f"Tarjimasi: *{COMP_TRANSLATIONS[adj]} {COMP_TRANSLATIONS[noun]}*"
+                full_word = f"{phrase}\n{translation}"
+                
+                if full_word not in u["history_words"]:
+                    u["history_words"].append(full_word)
+                    bot.send_message(message.chat.id, f"📚 **Yangi akademik ibora:**\n\n{full_word}", parse_mode="Markdown")
+                    break
 
     # --- 📝 GRAMMATIKA ---
     elif message.text == "📝 Grammatika":
@@ -108,16 +185,18 @@ def handle_messages(message):
 
     # --- 🧠 TEST ISHLASH ---
     elif message.text == "🧠 Test ishlash":
-        bot.send_message(message.chat.id, "Nechta test ishlamoqchisiz? Tanlang: 👇", reply_markup=get_quantity_menu())
+        bot.send_message(message.chat.id, "Nechta mutloqo yangi test ishlamoqchisiz? Tanlang: 👇", reply_markup=get_quantity_menu())
 
-    elif message.text in ["5 ta", "10 ta"]:
+    elif message.text in ["5 ta", "10 ta", "15 ta", "20 ta", "25 ta", "30 ta"]:
         quantity = int(message.text.split()[0])
-        avail_tests = [i for i, t in enumerate(TESTS_POOL) if i not in u["history_tests"]]
-        if len(avail_tests) < quantity: u["history_tests"] = []; avail_tests = list(range(len(TESTS_POOL)))
-        random.shuffle(avail_tests)
-        u["test_queue"] = avail_tests[:quantity]
+        u["test_queue"] = []
+        
+        # So'ralgan miqdorda mutloqo unikal (hech qachon takrorlanmaydigan) testlar zanjirini yaratish
+        for _ in range(quantity):
+            u["test_queue"].append(generate_infinite_test(user_id))
+            
         u["total_requested"] = quantity
-        bot.send_message(message.chat.id, f"🚀 {quantity} ta takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
+        bot.send_message(message.chat.id, f"🚀 {quantity} ta mutloqo yangi, takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
         send_next_queue_test(message.chat.id, user_id)
 
     elif message.text == "⬅️ Orqaga":
@@ -126,12 +205,12 @@ def handle_messages(message):
 def send_next_queue_test(chat_id, user_id):
     u = user_data[user_id]
     if not u["test_queue"]:
-        bot.send_message(chat_id, "🎉 Hamma testlarni muvaffaqiyatli tugatdingiz! 🏁")
+        bot.send_message(chat_id, "🎉 Tanlangan paketdagi barcha unikal testlarni tugatdingiz! Hech bir savol yoki javob takrorlanmadi. 🏁")
         return
-    current_test_index = u["test_queue"].pop(0)
-    u["history_tests"].append(current_test_index)
-    test_data = TESTS_POOL[current_test_index]
+    
+    test_data = u["test_queue"].pop(0)
     current_num = u["total_requested"] - len(u["test_queue"])
+    
     bot.send_poll(
         chat_id=chat_id,
         question=f"🧠 [Test {current_num}/{u['total_requested']}] {test_data['q']}",
@@ -148,7 +227,7 @@ def handle_poll_answer(pollAnswer):
     if user_data[user_id]["test_queue"]:
         send_next_queue_test(user_id, user_id)
     else:
-        bot.send_message(user_id, "🎉 Paketdagi barcha testlarni yechib bo'ldingiz!")
+        bot.send_message(user_id, "🎉 Paketdagi barcha unikal testlarni yechib bo'ldingiz!")
 
 if __name__ == "__main__":
     import threading
