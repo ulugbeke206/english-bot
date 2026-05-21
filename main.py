@@ -8,28 +8,39 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running live with AI Support Feature!"
+    return "Bot is running live with All Features!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
 # ==========================================
-# 📚 BAZALAR (O'zgarishsiz qoldi)
+# 📚 1. SO'ZLAR BAZASI (Hech narsa o'chmadi)
 # ==========================================
 VOCABULARY_POOL = [
     "1. **Analyze** - Tahlil qilmoq\n2. **Beneficial** - Foydali\n3. **Challenge** - Qiyinchilik\n4. **Develop** - Rivojlantirmoq\n5. **Essential** - Juda muhim",
-    "1. **Achieve** - Erishmoq\n2. **Improve** - Yaxshilamoq\n3. **Success** - Muvaffaqiyat\n4. **Experience** - Tajriba\n5. **Support** - Qo'llab-quvvatlamoq"
+    "1. **Achieve** - Erishmoq\n2. **Improve** - Yaxshilamoq\n3. **Success** - Muvaffaqiyat\n4. **Experience** - Tajriba\n5. **Support** - Qo'llab-quvvatlamoq",
+    "1. **Accurate** - Aniq, xatosiz\n2. **Blame** - Ayblamoq\n3. **Consequences** - Oqibatlar\n4. **Delay** - Kechiktirmoq\n5. **Encourage** - Ruhlantirmoq"
 ]
 
+# ==========================================
+# 📝 2. GRAMMATIKA BAZASI (Hech narsa o'chmadi)
+# ==========================================
 GRAMMAR_POOL = [
     "**Present Simple Tense**\n\nFormula: `Subject + V1 (s/es)`\n\n📌 Doimiy odatlar uchun.\n• _Ex:_ He plays football every Sunday.",
-    "**Present Perfect Tense**\n\nFormula: `Subject + have/has + V3`\n\n📌 Natijasi hozir ko'ringan ishlar uchun.\n• _Ex:_ I have lost my keys."
+    "**Present Perfect Tense**\n\nFormula: `Subject + have/has + V3`\n\n📌 Natijasi hozir ko'ringan ishlar uchun.\n• _Ex:_ I have lost my keys.",
+    "**Past Simple Tense**\n\nFormula: `Subject + V2 / V-ed`\n\n📌 O'tmishda tugagan ishlar uchun.\n• _Ex:_ They went to London last year."
 ]
 
+# ==========================================
+# 🧠 3. TESTLAR BAZASI (Hech narsa o'chmadi)
+# ==========================================
 TESTS_POOL = [
     {"q": "She ___ to school every day.", "o": ["go", "goes", "going", "gone"], "c": 1},
-    {"q": "What is the past tense of the verb 'BUY'?", "o": ["Buyed", "Bought", "Brought", "Buying"], "c": 1}
+    {"q": "What is the past tense of the verb 'BUY'?", "o": ["Buyed", "Bought", "Brought", "Buying"], "c": 1},
+    {"q": "'Encourage' so'zining to'g'ri tarjimasini toping:", "o": ["Ruhlantirmoq", "Kechikmoq", "Taqiqmoq", "Ayblash"], "c": 0},
+    {"q": "Which word means 'Saxiy / Qo'li ochiq'?", "o": ["Greedy", "Generous", "Frequent", "Hesitate"], "c": 1},
+    {"q": "Look! The birds ___ in the sky right now.", "o": ["flies", "are flying", "flew", "fly"], "c": 1}
 ]
 
 user_data = {}
@@ -45,7 +56,7 @@ def init_user(user_id):
             "state": None
         }
 
-# 🎛 MENYULAR RO'YXATI (ID aniqlagich o'rniga Savol so'rash qo'shildi)
+# 🎛 BARCHA MENYULAR SAQLANDI
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(types.KeyboardButton("📖 Yangi so'z"), types.KeyboardButton("📝 Grammatika"))
@@ -62,13 +73,14 @@ def get_quantity_menu():
 def send_welcome(message):
     user_id = message.from_user.id
     init_user(user_id)
-    user_data[user_id]["state"] = None
-    user_data[user_id]["test_queue"] = []
+    u = user_data[user_id]
+    u["state"] = None
+    u["test_queue"] = []
     
     welcome_text = (
         f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Ingliz tilini o'rgatuvchi aqlli botga xush kelibsiz!\n"
-        "Pastdagi menyulardan birini tanlang: 👇"
+        "Ingliz tilini o'rgatuvchi bot to'liq rejimda tayyor.\n"
+        "Kerakli bo'limni tanlashingiz mumkin: 👇"
     )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
 
@@ -79,45 +91,55 @@ def handle_messages(message):
     u = user_data[user_id]
     text = message.text.lower().strip()
 
-    # --- ❓ SAVOL SO'RASH CHATI HOLATI ---
+    # --- ❓ SAVOL SO'RASH CHATI ---
     if u["state"] == "waiting_for_question":
         if message.text == "⬅️ Orqaga":
             u["state"] = None
             bot.send_message(message.chat.id, "Asosiy menyuga qaytdingiz.", reply_markup=get_main_menu())
             return
 
-        # 🔐 Shaxsiy ma'lumotlar va parollar so'ralsa - RAD ETISH MANTIQI
-        block_keywords = ["yaratuvchi", "kim yaratgan", "avtor", "creator", "admin", "parol", "password", "kod", "tuzuvchi", "yaratgan"]
+        # 🔐 Shaxsiy ma'lumotlar va parollarni bloklash filtri
+        block_keywords = ["yaratuvchi", "kim yaratgan", "avtor", "creator", "admin", "parol", "password", "kod", "tuzuvchi", "yaratgan", "isming nima", "owner"]
         if any(keyword in text for keyword in block_keywords):
             bot.send_message(
                 message.chat.id, 
-                "❌ **Xavfsizlik tizimi:** Shaxsiy ma'lumotlar, parollar yoki bot yaratuvchisi haqidagi so'rovlarga javob berish mutlaqo taqiqlangan!",
+                "❌ **Xavfsizlik cheklovi:** Shaxsiy ma'lumotlar, maxfiy parollar yoki bot yaratuvchisi haqidagi so'rovlarga javob berish mutlaqo taqiqlangan!",
                 parse_mode="Markdown"
             )
             return
 
-        # 🤖 Bot qanday ishlashi va vazifalari so'ralsa
-        info_keywords = ["qanday ishlaydi", "vazifasi nima", "nima qila oladi", "bot haqida", "vazifalari", "how it works", "vazifasini tushuntir"]
+        # 🤖 Bot haqidagi savollarga javob berish
+        info_keywords = ["qanday ishlaydi", "vazifasi nima", "nima qila oladi", "bot haqida", "vazifalari", "how it works", "vazifasini tushuntir", "tushuntir"]
         if any(keyword in text for keyword in info_keywords):
             about_bot = (
-                "🤖 **Botning ishlash tizimi va vazifalari:**\n\n"
-                "1. **📖 Yangi so'z:** Har safar sizga ingliz tilidagi unikal so'zlar to'plamini tarjimasi va misollari bilan taqdim etadi.\n"
-                "2. **📝 Grammatika:** Ingliz tili qoidalarini formulalar va jonli misollar bilan oson tushuntiradi.\n"
-                "3. **🧠 Test ishlash:** Bilimingizni tekshirish uchun o'zingiz tanlagan miqdorda (5 ta, 10 ta) takrorlanmas testlar paketini yaratib beradi.\n"
-                "🌐 Tizim barcha ma'lumotlarni foydalanuvchi xotirasida saqlaydi, shu sababli darslar va testlar sizga hech qachon qayta takrorlanib chiqmaydi."
+                "🤖 **Bot qanday ishlaydi va uning vazifalari:**\n\n"
+                "• **📖 Yangi so'z:** Ingliz tilidagi muhim so'zlarni va ularning tarjimasini ko'rsatadi.\n"
+                "• **📝 Grammatika:** Zamonlar va qoidalarni formulalar yordamida o'rgatadi.\n"
+                "• **🧠 Test ishlash:** Bilimingizni sinash uchun takrorlanmas test paketlarini shakllantiradi.\n\n"
+                "Tizim har bir elementni foydalanuvchi tarixiga qarab unikal taqdim etadi."
             )
             bot.send_message(message.chat.id, about_bot, parse_mode="Markdown")
             return
 
-        # 🇬🇧 Faqat ingliz tili bo'yicha yordam berish qismi
-        english_help_text = (
-            "ℹ️ **Ingliz tili bo'yicha yordam:**\n\n"
-            "Ushbu bot faqat ingliz tili darsligi uchun dasturlangan. Agar sizda grammatik qoidalar, "
-            "so'zlar tarjimasi yoki testlar yuzasidan savollar bo'lsa, quyidagi formatlarda so'rashingiz mumkin:\n"
-            "• *Present Simple qoidasini tushuntir*\n"
-            "• *Analyze so'zining ma'nosi nima?*"
-        )
-        bot.send_message(message.chat.id, english_help_text, parse_mode="Markdown")
+        # 🇬🇧 Ingliz tili qoidalari bo'yicha faktik javoblar
+        if "present simple" in text:
+            reply = "📝 **Present Simple (Hozirgi oddiy zamon):**\n\nFormula: `Subject + V1 (s/es)`\n\nDoimiy takrorlanadigan odatiy harakatlar uchun ishlatiladi.\n*Misol:* I study English every day."
+        elif "present perfect" in text:
+            reply = "📝 **Present Perfect (Hozirgi tugallangan zamon):**\n\nFormula: `Subject + have/has + V3`\n\nIsh-harakat o'tmishda tugagan, lekin natijasi hozir ko'rinib turgan holatda qo'llaniladi.\n*Misol:* I have lost my keys."
+        elif "analyze" in text:
+            reply = "📚 **Analyze** so'zining ma'nosi — *Tahlil qilmoq*."
+        elif "beneficial" in text:
+            reply = "📚 **Beneficial** so'zining ma'nosi — *Foydali*, *manfaatli*."
+        elif "challenge" in text:
+            reply = "📚 **Challenge** so'zining ma'nosi — *Qiyinchilik* yoki *sinov*."
+        else:
+            reply = (
+                "ℹ️ **Eslatma:**\n\n"
+                "Ushbu chat faqat bot vazifalari va **Ingliz tili** darslari bo'yicha yordam ko'rsatadi.\n"
+                "Iltimos, savollarni ingliz tili grammatikasi yoki so'zlar bo'yicha yo'llang."
+            )
+        
+        bot.send_message(message.chat.id, reply, parse_mode="Markdown")
         return
 
     # --- 📖 YANGI SO'Z ---
@@ -150,16 +172,14 @@ def handle_messages(message):
         bot.send_message(message.chat.id, f"🚀 {quantity} ta takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
         send_next_queue_test(message.chat.id, user_id)
 
-    # --- ❓ SAVOL SO'RASH TUGMASI ---
+    # --- ❓ SAVOL SO'RASH ---
     elif message.text == "❓ Savol so'rash":
-        u["state"] = "waiting_for_id" # waiting_for_question o'rniga yozilgan holat
         u["state"] = "waiting_for_question"
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(types.KeyboardButton("⬅️ Orqaga"))
         info_prompt = (
-            "💬 **Savol so'rash bo'limiga kirdingiz!**\n\n"
-            "Bu yerda bot qanday ishlashi yoki vazifalarini so'rashingiz mumkin (Masalan: *'Bot qanday ishlaydi?'*).\n\n"
-            "⚠️ _Eslatma: Ushbu chatda faqat ingliz tili darslariga oid yordam ko'rsatiladi. Shaxsiy ma'lumotlar yoki parollar haqidagi so'rovlar qat'iyan bloklanadi._"
+            "💬 **Savol so'rash bo'limi faol!**\n\n"
+            "Menga botning vazifalari yoki ingliz tili qoidalari haqida savol yozishingiz mumkin. Men sizga javob beraman. 👇"
         )
         bot.send_message(message.chat.id, info_prompt, parse_mode="Markdown", reply_markup=keyboard)
 
@@ -169,7 +189,7 @@ def handle_messages(message):
 def send_next_queue_test(chat_id, user_id):
     u = user_data[user_id]
     if not u["test_queue"]:
-        bot.send_message(chat_id, "🎉 Tabriklayman! Tanlangan barcha testlarni tugatdingiz. 🏁")
+        bot.send_message(chat_id, "🎉 Hamma testlarni muvaffaqiyatli tugatdingiz! 🏁")
         return
     current_test_index = u["test_queue"].pop(0)
     u["history_tests"].append(current_test_index)
