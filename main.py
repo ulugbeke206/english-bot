@@ -13,17 +13,15 @@ RENDER_APP_NAME = os.environ.get("RENDER_EXTERNAL_URL", "https://english-bot-lsq
 
 @app.route('/')
 def home():
-    return "Bot is running live 24/7 with Automatic Cloud Database!"
+    return "Bot is running live 24/7 with Professional Channel-Style Stats!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
 # ==========================================================
-# 💾 AVTOMATIK BULUTLI BAZA TIZIMI (HECH NARSA TALAB QILINMAYDI)
+# 💾 AVTOMATIK BULUTLI BAZA TIZIMI (XAVFSIZ VA O'CHMAS)
 # ==========================================================
-# Bulutli bepul ombor (bin) orqali ma'lumotlarni saqlash URL manzili
-# Bu Render o'chib yonganda ham ma'lumotlarni saqlab qoladi.
 DB_API_URL = "https://api.jsonbin.it/v1/b/66509f6b-english-bot-db"
 
 ALL_BOT_MEMBERS = set()
@@ -39,7 +37,6 @@ def load_database():
         if "scores" in response:
             USER_SCORES = {int(k): v for k, v in response["scores"].items()}
     except Exception:
-        # Agar ombor hali yaratilmagan bo'lsa, xatolik bermaydi
         pass
 
 def save_database():
@@ -60,7 +57,7 @@ except Exception:
     pass
 
 # ==========================================
-# 📚 1. SO'ZLAR BAZASI (To'liq saqlangan)
+# 📚 1. SO'ZLAR BAZASI
 # ==========================================
 VOCABULARY_POOL = [
     "1. **Analyze** - Tahlil qilmoq\n2. **Beneficial** - Foydali\n3. **Challenge** - Qiyinchilik\n4. **Develop** - Rivojlantirmoq\n5. **Essential** - Juda muhim",
@@ -82,7 +79,7 @@ COMP_TRANSLATIONS = {
 }
 
 # ==========================================
-# 📝 2. GRAMMATIKA BAZASI (To'liq saqlangan)
+# 📝 2. GRAMMATIKA BAZASI
 # ==========================================
 GRAMMAR_POOL = [
     "**Present Simple Tense**\n\nFormula: `Subject + V1 (s/es)`\n\n📌 Doimiy odatlar uchun.\n• _Ex:_ He plays football every Sunday.",
@@ -91,7 +88,7 @@ GRAMMAR_POOL = [
 ]
 
 # ==========================================
-# 🧠 3. TESTLAR BAZASI (To'liq saqlangan)
+# 🧠 3. TESTLAR BAZASI
 # ==========================================
 TESTS_POOL = [
     {"q": "She ___ to school every day.", "o": ["go", "goes", "going", "gone"], "c": 1},
@@ -186,16 +183,21 @@ def check_and_register_user(user_id):
         ALL_BOT_MEMBERS.add(user_id)
         save_database()
 
+# ==========================================================
+# 📊 RASMDAGI KABI PROFESSIONAL STATISTIKA KO'RINISHI
+# ==========================================================
 @bot.message_handler(commands=['statistika'])
 def show_stats(message):
-    load_database() # Har safar ko'rishdan oldin bulutdan eng oxirgi sonni yuklaydi
+    load_database() # Ma'lumotlarni bulutdan eng oxirgi sonini yangilaydi
     total_members = len(ALL_BOT_MEMBERS)
+    
+    # Raqamlarni chiroyli formatda chiqarish (Masalan: 10,846 yoki 1,172,707)
     formatted_count = "{:,}".format(total_members)
     
+    # Aynan rasmdagi guruh va kanallar kabi minimalist va toza ko'rinish
     stat_text = (
-        f"📊 **Bot hisoblagichi:**\n"
-        f"📶 **{formatted_count} members**\n\n"
-        f"📱 _Botni ishga tushirgan barcha faol a'zolarning umumiy soni._"
+        f"👥 **Smart English Bot**\n"
+        f"**{formatted_count} members**"
     )
     try:
         bot.send_message(message.chat.id, stat_text, parse_mode="Markdown")
@@ -218,7 +220,7 @@ def send_welcome(message):
         "🔄 **Tarjimon imkoniyati:**\n"
         "• Botga inglizcha so'z/gap yuborsangiz -> **O'zbekchaga** o'giradi.\n"
         "• O'zbekcha so'z/gap yuborsangiz -> **Inglizchaga** o'giradi.\n"
-        "Hech qanday sozlash shart emas, shunchaki matnni yozing! 👇"
+        "Shunchaki matnni botiingizga yozing! 👇"
     )
     try:
         bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
@@ -353,7 +355,7 @@ def handle_poll_answer(pollAnswer):
     
     try:
         USER_SCORES[user_id] += 10
-        save_database() # Ball yangilanganda ham bulutga saqlaydi
+        save_database()
         if user_data[user_id]["test_queue"]:
             send_next_queue_test(user_id, user_id)
         else:
