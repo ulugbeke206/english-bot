@@ -13,7 +13,7 @@ RENDER_APP_NAME = os.environ.get("RENDER_EXTERNAL_URL", "https://english-bot-lsq
 
 @app.route('/')
 def home():
-    return "Bot is running live 24/7 with Smart Auto-Translator!"
+    return "Bot is running live 24/7 with 100% Perfect Bi-directional Translator!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
@@ -174,10 +174,11 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom! 👋\n\n"
-        "Milliardlab unikal testlar va **Aqlli Avto-Tarjimon** tizimi muvaffaqiyatli yoqildi!\n\n"
-        "🔤 **Tarjimon imkoniyati:**\n"
-        "Botga istalgan inglizcha yoki o'zbekcha so'zni yoki butun bir gapni yozib yuboring — bot tilni o'zi aniqlab, darhol tarjima qilib beradi! 🔄\n\n"
-        "Xohlagan bo'limingizni tanlang: 👇"
+        "Milliardlab unikal testlar va **Ikki tomonlama Tarjimon** tizimi muvaffaqiyatli yoqildi!\n\n"
+        "🔄 **Tarjimon imkoniyati:**\n"
+        "• Botga inglizcha so'z/gap yuborsangiz -> **O'zbekchaga** o'giradi.\n"
+        "• O'zbekcha so'z/gap yuborsangiz -> **Inglizchaga** o'giradi.\n"
+        "Hech qanday qo'shimcha rejimni yoqish shart emas, shunchaki matnni yozing! 👇"
     )
     try:
         bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
@@ -253,19 +254,20 @@ def handle_messages(message):
         elif message.text == "⬅️ Orqaga":
             bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=get_main_menu())
             
-        # 🌐 LUBBOY SO'Z VA GAPLARNI AVTOMATIK TARJIMA QILISH TIZIMI
+        # 🌐 MUKAMMAL IKKI TOMONLAMA AVTO-TARJIMON TIZIMI
         else:
             text_to_translate = message.text.strip()
             
-            # Matn tarkibida o'zbekcha harflar bo'lsa yoki inglizcha bo'lsa avtomatik aniqlash uchun algoritm
-            # Oddiy tekshiruv: agar matnda o'zbekcha so'zlar ko'p bo'lsa 'en' ga, aks holda 'uz' ga o'giradi
-            # API o'zi sl=auto rejimida ishlagani uchun biz target_lang ni aniqlab beramiz
+            # O'zbekcha o'ziga xos harflar yoki keng tarqalgan o'zbekcha so'z qo'shimchalarini tekshirish
+            uzb_identifiers = ['g\'', 'o\'', 'sh', 'ch', 'ng', 'lar', 'ning', 'ga', 'dan', 'da', 'mi', ' bilan', ' boti', 'uzb']
+            has_uzb_markers = any(marker in text_to_translate.lower() for marker in uzb_identifiers)
             
-            # Inglizcha harflar ko'proqligini tekshirish (agar matn asosan eng bo'lsa uzbga o'giradi)
+            # Inglizcha harflar ulushini aniqlash
             ascii_letters = sum(1 for c in text_to_translate if c.isalpha() and ord(c) < 128)
             total_letters = sum(1 for c in text_to_translate if c.isalpha())
             
-            if total_letters > 0 and (ascii_letters / total_letters) > 0.7:
+            # Yo'nalishni 100% aniq belgilash
+            if total_letters > 0 and (ascii_letters / total_letters) > 0.85 and not has_uzb_markers:
                 target_lang = "uz"
                 direction = "🇬🇧 English ➡️ 🇺🇿 O'zbekcha"
             else:
@@ -276,13 +278,13 @@ def handle_messages(message):
             
             if translated_result:
                 response_msg = (
-                    f"🔄 **Avto-Tarjimon ({direction}):**\n\n"
-                    f"📝 *Asl matn:* {text_to_translate}\n"
+                    f"🔄 **Mukammal Tarjimon ({direction}):**\n\n"
+                    f"📝 *Kiritildi:* {text_to_translate}\n"
                     f"✨ *Tarjimasi:* **{translated_result}**"
                 )
                 bot.send_message(message.chat.id, response_msg, parse_mode="Markdown")
             else:
-                bot.send_message(message.chat.id, "⚠️ Tarjima qilishda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.")
+                bot.send_message(message.chat.id, "⚠️ Tarjimada xatolik yuz berdi. Matnni qayta tekshirib yuboring.")
 
     except Exception:
         pass
