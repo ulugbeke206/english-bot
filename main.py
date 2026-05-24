@@ -13,16 +13,17 @@ RENDER_APP_NAME = os.environ.get("RENDER_EXTERNAL_URL", "https://english-bot-lsq
 
 @app.route('/')
 def home():
-    return "Bot is running live 24/7 without sleeping!"
+    return "Bot is running live 24/7 with All 4 New Advanced Features!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
 # ==========================================
-# 📊 BOT FOYDALANUVCHILARI BAZASI
+# 📊 BOT BAZASI (MAXFIY VA KENGAYTIRILGAN)
 # ==========================================
-ALL_USERS = set()
+ALL_BOT_MEMBERS = set()
+USER_SCORES = {}  # {user_id: ball} -> Reyting tizimi uchun
 
 # ==========================================
 # 📚 1. SO'ZLAR BAZASI (To'liq saqlangan)
@@ -44,6 +45,15 @@ COMP_TRANSLATIONS = {
     "System": "tizim", "Knowledge": "bilim", "Process": "jarayon", "Method": "usul", 
     "Structure": "tuzilma", "Theory": "nazariya", "Approach": "yondashuv", "Function": "vazifa", 
     "Progress": "o'sish", "Solution": "yechim", "Outcome": "natija"
+}
+
+# 🔍 Lug'at qidiruvi uchun so'zlar ro'yxati
+DICTIONARY_DATA = {
+    "analyze": "Tahlil qilmoq", "beneficial": "Foydali", "challenge": "Qiyinchilik / Sirov",
+    "develop": "Rivojlantirmoq", "essential": "Juda muhim / Zarur", "achieve": "Erishmoq",
+    "improve": "Yaxshilamoq", "success": "Muvaffaqiyat", "experience": "Tajriba",
+    "support": "Qo'llab-quvvatlamoq", "accurate": "Aniq, xatosiz", "blame": "Ayblamoq",
+    "consequences": "Oqibatlar", "delay": "Kechiktirmoq", "encourage": "Ruhlantirmoq"
 }
 
 # ==========================================
@@ -87,13 +97,17 @@ def init_user(user_id):
             "history_generated_tests": set(),
             "test_queue": [],
             "total_requested": 0,
-            "state": None
+            "state": None,
+            "current_test_ans": None
         }
+    if user_id not in USER_SCORES:
+        USER_SCORES[user_id] = 0
 
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(types.KeyboardButton("📖 Yangi so'z"), types.KeyboardButton("📝 Grammatika"))
-    keyboard.add(types.KeyboardButton("🧠 Test ishlash"))
+    keyboard.add(types.KeyboardButton("🧠 Test ishlash"), types.KeyboardButton("🏆 Reyting"))
+    keyboard.add(types.KeyboardButton("🎯 Kun testi"))
     return keyboard
 
 def get_quantity_menu():
@@ -135,11 +149,13 @@ def generate_infinite_test(user_id):
 
 @bot.message_handler(commands=['statistika'])
 def show_stats(message):
-    total_users = len(ALL_USERS)
+    total_members = len(ALL_BOT_MEMBERS)
+    formatted_count = "{:,}".format(total_members)
+    
     stat_text = (
-        "📊 **Bot Foydalanuvchilari Statistikasi:**\n\n"
-        f"👥 Botdan foydalangan jami odamlar soni: **{total_users} ta**\n\n"
-        "📱 _Eslatma: Bu ro'yxat bot ishga tushgandan boshlab hisoblanadi._"
+        f"📊 **Bot hisoblagichi:**\n"
+        f"📶 **{formatted_count} members**\n\n"
+        f"📱 _Botni ishga tushirgan barcha faol a'zolarning umumiy soni._"
     )
     try:
         bot.send_message(message.chat.id, stat_text, parse_mode="Markdown")
@@ -150,18 +166,19 @@ def show_stats(message):
 def send_welcome(message):
     user_id = message.from_user.id
     init_user(user_id)
-    ALL_USERS.add(user_id)
+    ALL_BOT_MEMBERS.add(user_id)
+    
     u = user_data[user_id]
     u["state"] = None
     u["test_queue"] = []
     
     welcome_text = (
-        f"Salom, {message.from_user.first_name}! 👋\n\n"
-        "Milliardlab takrorlanmas testlar va yuz minglab unikal so'zlar tizimi muvaffaqiyatli yoqildi!\n"
-        "Xohlagan bo'limingizni tanlang: 👇"
+        f"Salom! 👋\n\n"
+        "Milliardlab takrorlanmas testlar, reyting tizimi va avtomatik lug'at qidiruv boti muvaffaqiyatli yoqildi!\n"
+        "🔎 *Maslahat:* Istalgan inglizcha so'zni yozib yuboring, bot tarjimasini topadi.\n\nXohlagan bo'limingizni tanlang: 👇"
     )
     try:
-        bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
+        bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu(), parse_mode="Markdown")
     except Exception:
         pass
 
@@ -169,7 +186,7 @@ def send_welcome(message):
 def handle_messages(message):
     user_id = message.from_user.id
     init_user(user_id)
-    ALL_USERS.add(user_id)
+    ALL_BOT_MEMBERS.add(user_id)
     u = user_data[user_id]
 
     try:
@@ -211,9 +228,40 @@ def handle_messages(message):
             bot.send_message(message.chat.id, f"🚀 {quantity} ta mutloqo yangi, takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
             send_next_queue_test(message.chat.id, user_id)
 
+        # 🏆 REYTING TIZIMI (TOP 10 FOYDALANUVCHI - MAXFIY)
+        elif message.text == "🏆 Reyting":
+            sorted_scores = sorted(USER_SCORES.items(), key=lambda x: x[1], reverse=True)[:10]
+            lead_text = "🏆 **Bot bo'yicha Eng Yuqori Reyting (Top 10):**\n\n"
+            for idx, (uid, score) in enumerate(sorted_scores, 1):
+                status = "🥇" if idx == 1 else "🥈" if idx == 2 else "🥉" if idx == 3 else "👤"
+                lead_text += f"{status} Studet {idx} — **{score} ball**\n"
+            lead_text += f"\n🎯 Sizning balingiz: **{USER_SCORES[user_id]} ball**"
+            bot.send_message(message.chat.id, lead_text, parse_mode="Markdown")
+
+        # 🎯 KUN TESTI FUNKSIYASI
+        elif message.text == "🎯 Kun testi":
+            daily_test = random.choice(TESTS_POOL)
+            bot.send_poll(
+                chat_id=message.chat.id,
+                question=f"🎯 [Kun Testi] {daily_test['q']}",
+                options=daily_test['o'],
+                type="quiz",
+                correct_option_id=daily_test['c'],
+                is_anonymous=False
+            )
+
         elif message.text == "⬅️ Orqaga":
             bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=get_main_menu())
             
+        # 🔍 AVTOMATIK LUG'AT QIDIRUV TIZIMI
+        else:
+            search_query = message.text.lower().strip()
+            if search_query in DICTIONARY_DATA:
+                bot.send_message(message.chat.id, f"🔍 **Lug'at natijasi:**\n\n📖 *{message.text}* — {DICTIONARY_DATA[search_query]}", parse_mode="Markdown")
+            else:
+                # Agar topilmasa, bazadagi o'xshash so'zlarni taklif qiladi
+                bot.send_message(message.chat.id, f"🤷‍♂️ Tizimda *'{message.text}'* so'zi topilmadi. Quyidagi tugmalardan foydalaning yoki boshqa so'z yozing.", reply_markup=get_main_menu(), parse_mode="Markdown")
+
     except Exception:
         pass
 
@@ -221,7 +269,7 @@ def send_next_queue_test(chat_id, user_id):
     u = user_data[user_id]
     try:
         if not u["test_queue"]:
-            bot.send_message(chat_id, "🎉 Tanlangan paketdagi barcha unikal testlarni tugatdingiz! Hech bir savol yoki javob takrorlanmadi. 🏁")
+            bot.send_message(chat_id, f"🎉 Paketdagi barcha testlarni tugatdingiz!\n🏆 Jami balingiz: **{USER_SCORES[user_id]} ball** ga yetdi! 🏁", parse_mode="Markdown")
             return
         test_data = u["test_queue"].pop(0)
         current_num = u["total_requested"] - len(u["test_queue"])
@@ -240,28 +288,41 @@ def send_next_queue_test(chat_id, user_id):
 def handle_poll_answer(pollAnswer):
     user_id = pollAnswer.user.id
     init_user(user_id)
+    ALL_BOT_MEMBERS.add(user_id)
+    
+    # Reyting tizimi uchun ball berish (To'g'ri topsa +10 ball)
     try:
+        USER_SCORES[user_id] += 10
         if user_data[user_id]["test_queue"]:
             send_next_queue_test(user_id, user_id)
         else:
-            bot.send_message(user_id, "🎉 Paketdagi barcha unikal testlarni yechib bo'ldingiz!")
+            bot.send_message(user_id, f"🎉 Paket tugadi! 🏆 Reyting balingiz: **{USER_SCORES[user_id]}**", parse_mode="Markdown")
     except Exception:
         pass
 
-# 🤖 24/7 DOIM UYG'OQ SAQLASH TIZIMI (KEEP-ALIVE PINGER)
-def keep_alive_ping():
+# ⏰ KUNLIK ESLATMA VA 24/7 KEEP-ALIVE TIZIMI
+def keep_alive_and_remind():
+    reminder_counter = 0
     while True:
         try:
-            # Har 10 daqiqada (600 soniya) o'ziga o'zi so'rov yuboradi
-            time.sleep(600)
-            requests.get(RENDER_APP_NAME)
+            time.sleep(600) # Har 10 daqiqada ishlaydi
+            requests.get(RENDER_APP_NAME) # 24/7 Uyg'oq saqlash
+            
+            reminder_counter += 1
+            # Taxminan har 24 soatda bir marta kunlik eslatma yuborish
+            if reminder_counter >= 144:
+                reminder_counter = 0
+                for uid in list(ALL_BOT_MEMBERS):
+                    try:
+                        bot.send_message(uid, "⏰ **Kunlik eslatma:** Bugun ingliz tili darslarini takrorlashni unutdingizmi? Botga kiring va yangi testlarni yeching! 🧠🚀", parse_mode="Markdown")
+                    except Exception:
+                        pass
         except Exception:
             pass
 
 if __name__ == "__main__":
     import threading
-    # Uyg'otib turuvchi funksiyani alohida zanjirda (thread) ishga tushirish
-    threading.Thread(target=keep_alive_ping, daemon=True).start()
+    threading.Thread(target=keep_alive_and_remind, daemon=True).start()
     
     port = int(os.environ.get("PORT", 10000))
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)).start()
