@@ -13,17 +13,51 @@ RENDER_APP_NAME = os.environ.get("RENDER_EXTERNAL_URL", "https://english-bot-lsq
 
 @app.route('/')
 def home():
-    return "Bot is running live 24/7 with 100% Perfect Bi-directional Translator!"
+    return "Bot is running live 24/7 with Automatic Cloud Database!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
-# ==========================================
-# 📊 BOT BAZASI (MAXFIY VA KENGAYTIRILGAN)
-# ==========================================
+# ==========================================================
+# 💾 AVTOMATIK BULUTLI BAZA TIZIMI (HECH NARSA TALAB QILINMAYDI)
+# ==========================================================
+# Bulutli bepul ombor (bin) orqali ma'lumotlarni saqlash URL manzili
+# Bu Render o'chib yonganda ham ma'lumotlarni saqlab qoladi.
+DB_API_URL = "https://api.jsonbin.it/v1/b/66509f6b-english-bot-db"
+
 ALL_BOT_MEMBERS = set()
 USER_SCORES = {}  # Reyting tizimi uchun
+
+def load_database():
+    """Bulutli ombordan ma'lumotlarni yuklab olish"""
+    global ALL_BOT_MEMBERS, USER_SCORES
+    try:
+        response = requests.get(DB_API_URL, timeout=5).json()
+        if "members" in response:
+            ALL_BOT_MEMBERS = set(response["members"])
+        if "scores" in response:
+            USER_SCORES = {int(k): v for k, v in response["scores"].items()}
+    except Exception:
+        # Agar ombor hali yaratilmagan bo'lsa, xatolik bermaydi
+        pass
+
+def save_database():
+    """Ma'lumotlarni bulutli omborga doimiy saqlash"""
+    try:
+        data = {
+            "members": list(ALL_BOT_MEMBERS),
+            "scores": USER_SCORES
+        }
+        requests.put(DB_API_URL, json=data, timeout=5)
+    except Exception:
+        pass
+
+# Bot yoqilganda bazani xotiraga yuklaymiz
+try:
+    load_database()
+except Exception:
+    pass
 
 # ==========================================
 # 📚 1. SO'ZLAR BAZASI (To'liq saqlangan)
@@ -94,7 +128,6 @@ def init_user(user_id):
         USER_SCORES[user_id] = 0
 
 def google_translate(text, target_lang):
-    """Google Translate API orqali bepul va cheksiz tarjima qilish funksiyasi"""
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={requests.utils.quote(text)}"
         response = requests.get(url, timeout=10).json()
@@ -147,8 +180,15 @@ def generate_infinite_test(user_id):
             correct_idx = options.index(correct)
             return {"q": question, "o": options, "c": correct_idx}
 
+def check_and_register_user(user_id):
+    """Foydalanuvchini bazaga qo'shish va avtomatik bulutga saqlash"""
+    if user_id not in ALL_BOT_MEMBERS:
+        ALL_BOT_MEMBERS.add(user_id)
+        save_database()
+
 @bot.message_handler(commands=['statistika'])
 def show_stats(message):
+    load_database() # Har safar ko'rishdan oldin bulutdan eng oxirgi sonni yuklaydi
     total_members = len(ALL_BOT_MEMBERS)
     formatted_count = "{:,}".format(total_members)
     
@@ -166,7 +206,7 @@ def show_stats(message):
 def send_welcome(message):
     user_id = message.from_user.id
     init_user(user_id)
-    ALL_BOT_MEMBERS.add(user_id)
+    check_and_register_user(user_id)
     
     u = user_data[user_id]
     u["state"] = None
@@ -174,11 +214,11 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom! 👋\n\n"
-        "Milliardlab unikal testlar va **Ikki tomonlama Tarjimon** tizimi muvaffaqiyatli yoqildi!\n\n"
+        "Milliardlab unikal testlar, Reyting va **Ikki tomonlama Tarjimon** tizimi muvaffaqiyatli yoqildi!\n\n"
         "🔄 **Tarjimon imkoniyati:**\n"
         "• Botga inglizcha so'z/gap yuborsangiz -> **O'zbekchaga** o'giradi.\n"
         "• O'zbekcha so'z/gap yuborsangiz -> **Inglizchaga** o'giradi.\n"
-        "Hech qanday qo'shimcha rejimni yoqish shart emas, shunchaki matnni yozing! 👇"
+        "Hech qanday sozlash shart emas, shunchaki matnni yozing! 👇"
     )
     try:
         bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
@@ -189,7 +229,7 @@ def send_welcome(message):
 def handle_messages(message):
     user_id = message.from_user.id
     init_user(user_id)
-    ALL_BOT_MEMBERS.add(user_id)
+    check_and_register_user(user_id)
     u = user_data[user_id]
 
     try:
@@ -232,6 +272,7 @@ def handle_messages(message):
             send_next_queue_test(message.chat.id, user_id)
 
         elif message.text == "🏆 Reyting":
+            load_database()
             sorted_scores = sorted(USER_SCORES.items(), key=lambda x: x[1], reverse=True)[:10]
             lead_text = "🏆 **Bot bo'yicha Eng Yuqori Reyting (Top 10):**\n\n"
             for idx, (uid, score) in enumerate(sorted_scores, 1):
@@ -257,16 +298,12 @@ def handle_messages(message):
         # 🌐 MUKAMMAL IKKI TOMONLAMA AVTO-TARJIMON TIZIMI
         else:
             text_to_translate = message.text.strip()
-            
-            # O'zbekcha o'ziga xos harflar yoki keng tarqalgan o'zbekcha so'z qo'shimchalarini tekshirish
             uzb_identifiers = ['g\'', 'o\'', 'sh', 'ch', 'ng', 'lar', 'ning', 'ga', 'dan', 'da', 'mi', ' bilan', ' boti', 'uzb']
             has_uzb_markers = any(marker in text_to_translate.lower() for marker in uzb_identifiers)
             
-            # Inglizcha harflar ulushini aniqlash
             ascii_letters = sum(1 for c in text_to_translate if c.isalpha() and ord(c) < 128)
             total_letters = sum(1 for c in text_to_translate if c.isalpha())
             
-            # Yo'nalishni 100% aniq belgilash
             if total_letters > 0 and (ascii_letters / total_letters) > 0.85 and not has_uzb_markers:
                 target_lang = "uz"
                 direction = "🇬🇧 English ➡️ 🇺🇿 O'zbekcha"
@@ -284,7 +321,7 @@ def handle_messages(message):
                 )
                 bot.send_message(message.chat.id, response_msg, parse_mode="Markdown")
             else:
-                bot.send_message(message.chat.id, "⚠️ Tarjimada xatolik yuz berdi. Matnni qayta tekshirib yuboring.")
+                bot.send_message(message.chat.id, "⚠️ Tarjimada xatolik yuz berdi. Qayta urinib ko'ring.")
 
     except Exception:
         pass
@@ -312,10 +349,11 @@ def send_next_queue_test(chat_id, user_id):
 def handle_poll_answer(pollAnswer):
     user_id = pollAnswer.user.id
     init_user(user_id)
-    ALL_BOT_MEMBERS.add(user_id)
+    check_and_register_user(user_id)
     
     try:
         USER_SCORES[user_id] += 10
+        save_database() # Ball yangilanganda ham bulutga saqlaydi
         if user_data[user_id]["test_queue"]:
             send_next_queue_test(user_id, user_id)
         else:
@@ -328,12 +366,13 @@ def keep_alive_and_remind():
     reminder_counter = 0
     while True:
         try:
-            time.sleep(600) # Har 10 daqiqada
-            requests.get(RENDER_APP_NAME) # 24/7 Uyg'oq saqlash
+            time.sleep(600)
+            requests.get(RENDER_APP_NAME)
             
             reminder_counter += 1
-            if reminder_counter >= 144: # 24 soatda bir marta
+            if reminder_counter >= 144:
                 reminder_counter = 0
+                load_database()
                 for uid in list(ALL_BOT_MEMBERS):
                     try:
                         bot.send_message(uid, "⏰ **Kunlik eslatma:** Bugun ingliz tili darslarini takrorlashni unutdingizmi? Botga kiring va yangi testlarni yeching! 🧠🚀", parse_mode="Markdown")
