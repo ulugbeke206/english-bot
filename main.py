@@ -8,27 +8,24 @@ from telebot import types
 
 app = Flask(__name__)
 
-# O'zining URL manzilini avtomatik aniqlash (Render uchun)
 RENDER_APP_NAME = os.environ.get("RENDER_EXTERNAL_URL", "https://english-bot-lsq4.onrender.com")
 
 @app.route('/')
 def home():
-    return "Bot is running live 24/7 with Professional Channel-Style Stats!"
+    return "Bot is running live 24/7 with Admin Update Controller!"
 
-# 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
 bot = telebot.TeleBot(TOKEN)
 
 # ==========================================================
-# 💾 AVTOMATIK BULUTLI BAZA TIZIMI (XAVFSIZ VA O'CHMAS)
+# 💾 REAL BULUTLI BAZA TIZIMI (XAVFSIZ VA O'CHMAS)
 # ==========================================================
 DB_API_URL = "https://api.jsonbin.it/v1/b/66509f6b-english-bot-db"
 
 ALL_BOT_MEMBERS = set()
-USER_SCORES = {}  # Reyting tizimi uchun
+USER_SCORES = {}
 
 def load_database():
-    """Bulutli ombordan ma'lumotlarni yuklab olish"""
     global ALL_BOT_MEMBERS, USER_SCORES
     try:
         response = requests.get(DB_API_URL, timeout=5).json()
@@ -40,7 +37,6 @@ def load_database():
         pass
 
 def save_database():
-    """Ma'lumotlarni bulutli omborga doimiy saqlash"""
     try:
         data = {
             "members": list(ALL_BOT_MEMBERS),
@@ -50,14 +46,13 @@ def save_database():
     except Exception:
         pass
 
-# Bot yoqilganda bazani xotiraga yuklaymiz
 try:
     load_database()
 except Exception:
     pass
 
 # ==========================================
-# 📚 1. SO'ZLAR BAZASI
+# 📚 BAZALAR (SO'Z, GRAMMATIKA, TEST)
 # ==========================================
 VOCABULARY_POOL = [
     "1. **Analyze** - Tahlil qilmoq\n2. **Beneficial** - Foydali\n3. **Challenge** - Qiyinchilik\n4. **Develop** - Rivojlantirmoq\n5. **Essential** - Juda muhim",
@@ -78,18 +73,12 @@ COMP_TRANSLATIONS = {
     "Progress": "o'sish", "Solution": "yechim", "Outcome": "natija"
 }
 
-# ==========================================
-# 📝 2. GRAMMATIKA BAZASI
-# ==========================================
 GRAMMAR_POOL = [
     "**Present Simple Tense**\n\nFormula: `Subject + V1 (s/es)`\n\n📌 Doimiy odatlar uchun.\n• _Ex:_ He plays football every Sunday.",
     "**Present Perfect Tense**\n\nFormula: `Subject + have/has + V3`\n\n📌 Natijasi hozir ko'ringan ishlar uchun.\n• _Ex:_ I have lost my keys.",
     "**Past Simple Tense**\n\nFormula: `Subject + V2 / V-ed`\n\n📌 O'tmishda tugagan ishlar uchun.\n• _Ex:_ They went to London last year."
 ]
 
-# ==========================================
-# 🧠 3. TESTLAR BAZASI
-# ==========================================
 TESTS_POOL = [
     {"q": "She ___ to school every day.", "o": ["go", "goes", "going", "gone"], "c": 1},
     {"q": "What is the past tense of the verb 'BUY'?", "o": ["Buyed", "Bought", "Brought", "Buying"], "c": 1},
@@ -178,31 +167,52 @@ def generate_infinite_test(user_id):
             return {"q": question, "o": options, "c": correct_idx}
 
 def check_and_register_user(user_id):
-    """Foydalanuvchini bazaga qo'shish va avtomatik bulutga saqlash"""
     if user_id not in ALL_BOT_MEMBERS:
         ALL_BOT_MEMBERS.add(user_id)
         save_database()
 
 # ==========================================================
-# 📊 RASMDAGI KABI PROFESSIONAL STATISTIKA KO'RINISHI
+# 📊 HAQQONIY STATISTIKA TIZIMI (FAQAT REAL ODAMLAR)
 # ==========================================================
 @bot.message_handler(commands=['statistika'])
 def show_stats(message):
-    load_database() # Ma'lumotlarni bulutdan eng oxirgi sonini yangilaydi
-    total_members = len(ALL_BOT_MEMBERS)
+    load_database()
+    real_count = len(ALL_BOT_MEMBERS)
+    formatted_count = "{:,}".format(real_count)
     
-    # Raqamlarni chiroyli formatda chiqarish (Masalan: 10,846 yoki 1,172,707)
-    formatted_count = "{:,}".format(total_members)
-    
-    # Aynan rasmdagi guruh va kanallar kabi minimalist va toza ko'rinish
     stat_text = (
         f"👥 **Smart English Bot**\n"
-        f"**{formatted_count} members**"
+        f"{formatted_count} members"
     )
     try:
         bot.send_message(message.chat.id, stat_text, parse_mode="Markdown")
     except Exception:
         pass
+
+# ==========================================================
+# 📢 BARCHA FOYDALANUVCHILAR MENYUSINI YANGILASH (ADMIN BUYRUG'I)
+# ==========================================================
+@bot.message_handler(commands=['update'])
+def admin_update_menu(message):
+    load_database()
+    success_count = 0
+    
+    # Botga kirgan har bir faol foydalanuvchiga yangi menyuni majburlab yuboramiz
+    for uid in list(ALL_BOT_MEMBERS):
+        try:
+            bot.send_message(
+                uid, 
+                "🚀 **Botimiz muvaffaqiyatli yangilandi!**\n\n"
+                "Yangi bo'limlar va imkoniyatlar qo'shildi. Quyidagi yangi tugmalardan foydalanishingiz mumkin! 👇", 
+                parse_mode="Markdown", 
+                reply_markup=get_main_menu() # Yangilangan yangi menyuni ekranda chiqaradi
+            )
+            success_count += 1
+            time.sleep(0.05)
+        except Exception:
+            pass
+            
+    bot.send_message(message.chat.id, f"✅ Yangilanish xabari {success_count} ta faol foydalanuvchiga yuborildi va ularning menyusi yangilandi!")
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -220,7 +230,7 @@ def send_welcome(message):
         "🔄 **Tarjimon imkoniyati:**\n"
         "• Botga inglizcha so'z/gap yuborsangiz -> **O'zbekchaga** o'giradi.\n"
         "• O'zbekcha so'z/gap yuborsangiz -> **Inglizchaga** o'giradi.\n"
-        "Shunchaki matnni botiingizga yozing! 👇"
+        "Shunchaki matnni yozing! 👇"
     )
     try:
         bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
@@ -297,7 +307,6 @@ def handle_messages(message):
         elif message.text == "⬅️ Orqaga":
             bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=get_main_menu())
             
-        # 🌐 MUKAMMAL IKKI TOMONLAMA AVTO-TARJIMON TIZIMI
         else:
             text_to_translate = message.text.strip()
             uzb_identifiers = ['g\'', 'o\'', 'sh', 'ch', 'ng', 'lar', 'ning', 'ga', 'dan', 'da', 'mi', ' bilan', ' boti', 'uzb']
@@ -363,7 +372,6 @@ def handle_poll_answer(pollAnswer):
     except Exception:
         pass
 
-# ⏰ KUNLIK ESLATMA VA 24/7 KEEP-ALIVE TIZIMI
 def keep_alive_and_remind():
     reminder_counter = 0
     while True:
