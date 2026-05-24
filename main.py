@@ -13,7 +13,7 @@ RENDER_APP_NAME = os.environ.get("RENDER_EXTERNAL_URL", "https://english-bot-lsq
 
 @app.route('/')
 def home():
-    return "Bot is running live 24/7 with All 4 New Advanced Features!"
+    return "Bot is running live 24/7 with Smart Auto-Translator!"
 
 # 🔑 Bot tokeningiz
 TOKEN = '8957612617:AAFaO6NPcZ69dbs7L53Jf2nv1zUdYcYV83Y'
@@ -23,7 +23,7 @@ bot = telebot.TeleBot(TOKEN)
 # 📊 BOT BAZASI (MAXFIY VA KENGAYTIRILGAN)
 # ==========================================
 ALL_BOT_MEMBERS = set()
-USER_SCORES = {}  # {user_id: ball} -> Reyting tizimi uchun
+USER_SCORES = {}  # Reyting tizimi uchun
 
 # ==========================================
 # 📚 1. SO'ZLAR BAZASI (To'liq saqlangan)
@@ -45,15 +45,6 @@ COMP_TRANSLATIONS = {
     "System": "tizim", "Knowledge": "bilim", "Process": "jarayon", "Method": "usul", 
     "Structure": "tuzilma", "Theory": "nazariya", "Approach": "yondashuv", "Function": "vazifa", 
     "Progress": "o'sish", "Solution": "yechim", "Outcome": "natija"
-}
-
-# 🔍 Lug'at qidiruvi uchun so'zlar ro'yxati
-DICTIONARY_DATA = {
-    "analyze": "Tahlil qilmoq", "beneficial": "Foydali", "challenge": "Qiyinchilik / Sirov",
-    "develop": "Rivojlantirmoq", "essential": "Juda muhim / Zarur", "achieve": "Erishmoq",
-    "improve": "Yaxshilamoq", "success": "Muvaffaqiyat", "experience": "Tajriba",
-    "support": "Qo'llab-quvvatlamoq", "accurate": "Aniq, xatosiz", "blame": "Ayblamoq",
-    "consequences": "Oqibatlar", "delay": "Kechiktirmoq", "encourage": "Ruhlantirmoq"
 }
 
 # ==========================================
@@ -97,11 +88,20 @@ def init_user(user_id):
             "history_generated_tests": set(),
             "test_queue": [],
             "total_requested": 0,
-            "state": None,
-            "current_test_ans": None
+            "state": None
         }
     if user_id not in USER_SCORES:
         USER_SCORES[user_id] = 0
+
+def google_translate(text, target_lang):
+    """Google Translate API orqali bepul va cheksiz tarjima qilish funksiyasi"""
+    try:
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={requests.utils.quote(text)}"
+        response = requests.get(url, timeout=10).json()
+        translated_text = "".join([sentence[0] for sentence in response[0] if sentence[0]])
+        return translated_text
+    except Exception:
+        return None
 
 def get_main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -174,11 +174,13 @@ def send_welcome(message):
     
     welcome_text = (
         f"Salom! 👋\n\n"
-        "Milliardlab takrorlanmas testlar, reyting tizimi va avtomatik lug'at qidiruv boti muvaffaqiyatli yoqildi!\n"
-        "🔎 *Maslahat:* Istalgan inglizcha so'zni yozib yuboring, bot tarjimasini topadi.\n\nXohlagan bo'limingizni tanlang: 👇"
+        "Milliardlab unikal testlar va **Aqlli Avto-Tarjimon** tizimi muvaffaqiyatli yoqildi!\n\n"
+        "🔤 **Tarjimon imkoniyati:**\n"
+        "Botga istalgan inglizcha yoki o'zbekcha so'zni yoki butun bir gapni yozib yuboring — bot tilni o'zi aniqlab, darhol tarjima qilib beradi! 🔄\n\n"
+        "Xohlagan bo'limingizni tanlang: 👇"
     )
     try:
-        bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu(), parse_mode="Markdown")
+        bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_menu())
     except Exception:
         pass
 
@@ -228,17 +230,15 @@ def handle_messages(message):
             bot.send_message(message.chat.id, f"🚀 {quantity} ta mutloqo yangi, takrorlanmas test tayyorlandi! Birinchisi ketdi:", reply_markup=get_main_menu())
             send_next_queue_test(message.chat.id, user_id)
 
-        # 🏆 REYTING TIZIMI (TOP 10 FOYDALANUVCHI - MAXFIY)
         elif message.text == "🏆 Reyting":
             sorted_scores = sorted(USER_SCORES.items(), key=lambda x: x[1], reverse=True)[:10]
             lead_text = "🏆 **Bot bo'yicha Eng Yuqori Reyting (Top 10):**\n\n"
             for idx, (uid, score) in enumerate(sorted_scores, 1):
                 status = "🥇" if idx == 1 else "🥈" if idx == 2 else "🥉" if idx == 3 else "👤"
-                lead_text += f"{status} Studet {idx} — **{score} ball**\n"
+                lead_text += f"{status} Student {idx} — **{score} ball**\n"
             lead_text += f"\n🎯 Sizning balingiz: **{USER_SCORES[user_id]} ball**"
             bot.send_message(message.chat.id, lead_text, parse_mode="Markdown")
 
-        # 🎯 KUN TESTI FUNKSIYASI
         elif message.text == "🎯 Kun testi":
             daily_test = random.choice(TESTS_POOL)
             bot.send_poll(
@@ -253,14 +253,36 @@ def handle_messages(message):
         elif message.text == "⬅️ Orqaga":
             bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=get_main_menu())
             
-        # 🔍 AVTOMATIK LUG'AT QIDIRUV TIZIMI
+        # 🌐 LUBBOY SO'Z VA GAPLARNI AVTOMATIK TARJIMA QILISH TIZIMI
         else:
-            search_query = message.text.lower().strip()
-            if search_query in DICTIONARY_DATA:
-                bot.send_message(message.chat.id, f"🔍 **Lug'at natijasi:**\n\n📖 *{message.text}* — {DICTIONARY_DATA[search_query]}", parse_mode="Markdown")
+            text_to_translate = message.text.strip()
+            
+            # Matn tarkibida o'zbekcha harflar bo'lsa yoki inglizcha bo'lsa avtomatik aniqlash uchun algoritm
+            # Oddiy tekshiruv: agar matnda o'zbekcha so'zlar ko'p bo'lsa 'en' ga, aks holda 'uz' ga o'giradi
+            # API o'zi sl=auto rejimida ishlagani uchun biz target_lang ni aniqlab beramiz
+            
+            # Inglizcha harflar ko'proqligini tekshirish (agar matn asosan eng bo'lsa uzbga o'giradi)
+            ascii_letters = sum(1 for c in text_to_translate if c.isalpha() and ord(c) < 128)
+            total_letters = sum(1 for c in text_to_translate if c.isalpha())
+            
+            if total_letters > 0 and (ascii_letters / total_letters) > 0.7:
+                target_lang = "uz"
+                direction = "🇬🇧 English ➡️ 🇺🇿 O'zbekcha"
             else:
-                # Agar topilmasa, bazadagi o'xshash so'zlarni taklif qiladi
-                bot.send_message(message.chat.id, f"🤷‍♂️ Tizimda *'{message.text}'* so'zi topilmadi. Quyidagi tugmalardan foydalaning yoki boshqa so'z yozing.", reply_markup=get_main_menu(), parse_mode="Markdown")
+                target_lang = "en"
+                direction = "🇺🇿 O'zbekcha ➡️ 🇬🇧 English"
+                
+            translated_result = google_translate(text_to_translate, target_lang)
+            
+            if translated_result:
+                response_msg = (
+                    f"🔄 **Avto-Tarjimon ({direction}):**\n\n"
+                    f"📝 *Asl matn:* {text_to_translate}\n"
+                    f"✨ *Tarjimasi:* **{translated_result}**"
+                )
+                bot.send_message(message.chat.id, response_msg, parse_mode="Markdown")
+            else:
+                bot.send_message(message.chat.id, "⚠️ Tarjima qilishda xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.")
 
     except Exception:
         pass
@@ -290,7 +312,6 @@ def handle_poll_answer(pollAnswer):
     init_user(user_id)
     ALL_BOT_MEMBERS.add(user_id)
     
-    # Reyting tizimi uchun ball berish (To'g'ri topsa +10 ball)
     try:
         USER_SCORES[user_id] += 10
         if user_data[user_id]["test_queue"]:
@@ -305,12 +326,11 @@ def keep_alive_and_remind():
     reminder_counter = 0
     while True:
         try:
-            time.sleep(600) # Har 10 daqiqada ishlaydi
+            time.sleep(600) # Har 10 daqiqada
             requests.get(RENDER_APP_NAME) # 24/7 Uyg'oq saqlash
             
             reminder_counter += 1
-            # Taxminan har 24 soatda bir marta kunlik eslatma yuborish
-            if reminder_counter >= 144:
+            if reminder_counter >= 144: # 24 soatda bir marta
                 reminder_counter = 0
                 for uid in list(ALL_BOT_MEMBERS):
                     try:
